@@ -34,7 +34,7 @@ cd WordMesh
 
 ```bash
 cd deployment
-docker-compose up -d
+docker compose up -d
 ```
 
 这将启动以下服务：
@@ -47,7 +47,7 @@ docker-compose up -d
 
 ```bash
 cd deployment
-docker-compose ps
+docker compose ps
 ```
 
 ### 5. 访问服务
@@ -59,14 +59,14 @@ docker-compose ps
 
 ```bash
 cd deployment
-docker-compose down
+docker compose down
 ```
 
 如果要同时删除数据卷（注意：这将删除所有数据）：
 
 ```bash
 cd deployment
-docker-compose down -v
+docker compose down -v
 ```
 
 ## 环境变量配置
@@ -90,23 +90,23 @@ docker-compose down -v
 ```bash
 # 查看所有服务日志
 cd deployment
-docker-compose logs
+docker compose logs
 
 # 查看特定服务日志
-docker-compose logs postgres
-docker-compose logs neo4j
+docker compose logs postgres
+docker compose logs neo4j
 ```
 
 ### 重新构建镜像
 
 ```bash
 cd deployment
-docker-compose build
+docker compose build
 ```
 
 ### 强制重新创建容器
 
 ```bash
 cd deployment
-docker-compose up -d --force-recreate
+docker compose up -d --force-recreate
 ```

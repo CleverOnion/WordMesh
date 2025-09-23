@@ -1,0 +1,11 @@
+[0;1;32m●[0m docker.service - Docker Application Container Engine
+     Loaded: loaded (]8;;file://iZ2ze7lhijcootsdykgt0sZ/usr/lib/systemd/system/docker.service/usr/lib/systemd/system/docker.service]8;;; [0;1;32menabled[0m; preset: [0;1;32menabled[0m)
+     Active: [0;1;32mactive (running)[0m since Tue 2025-09-23 12:44:55 CST; 9min ago
+TriggeredBy: [0;1;32m●[0m docker.socket
+       Docs: ]8;;https://docs.docker.comhttps://docs.docker.com]8;;
+   Main PID: 2870583 (dockerd)
+      Tasks: 9
+     Memory: 95.3M (peak: 108.7M)
+        CPU: 829ms
+     CGroup: /system.slice/docker.service
+             └─[0;38;5;245m2870583 /usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock[0m

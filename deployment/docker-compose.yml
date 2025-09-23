@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL数据库服务
   postgres:
@@ -19,7 +17,7 @@ services:
 
   # Neo4j图数据库服务
   neo4j:
-    image: neo4j:4.4
+    image: neo4j:5
     container_name: wordmesh-neo4j
     restart: always
     environment:
