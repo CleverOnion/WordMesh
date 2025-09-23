@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # PostgreSQL数据库服务
+  postgres:
+    image: postgres:13
+    container_name: wordmesh-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: wordmesh
+      POSTGRES_PASSWORD: wordmesh123
+      POSTGRES_DB: wordmesh_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - wordmesh-network
+
+  # Neo4j图数据库服务
+  neo4j:
+    image: neo4j:4.4
+    container_name: wordmesh-neo4j
+    restart: always
+    environment:
+      NEO4J_AUTH: neo4j/wordmesh123
+      NEO4J_dbms_security_auth__enabled: "true"
+    ports:
+      - "7474:7474"   # HTTP浏览器访问
+      - "7687:7687"   # Bolt协议连接端口
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    networks:
+      - wordmesh-network
+
+volumes:
+  postgres_data:
+  neo4j_data:
+  neo4j_logs:
+
+networks:
+  wordmesh-network:
+    driver: bridge

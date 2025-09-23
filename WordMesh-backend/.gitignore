@@ -1,1 +1,5 @@
 /target
+
+# Docker相关文件
+.dockerignore
+.env

@@ -34,4 +34,21 @@ WordMesh 是一个个人知识网络构建工具，旨在帮助用户通过连�
 
 ## 如何开始
 
+### Docker部署（推荐）
+
+项目支持使用Docker进行一键部署，请参考 [DEPLOYMENT.md](DEPLOYMENT.md) 文件了解详细部署步骤。
+
+1. 确保已安装Docker和Docker Compose
+2. 运行以下命令启动所有服务：
+
+```bash
+cd deployment
+docker-compose up -d
+```
+
+3. 服务启动后可通过以下地址访问：
+   - Neo4j Browser: http://localhost:7474
+
+### 手动部署
+
 > 项目的构建和运行说明将在完成初步开发后补充于此。
