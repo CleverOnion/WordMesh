@@ -9,7 +9,9 @@ WordMesh/
 ├── deployment/
 │   ├── docker-compose.yml      # Docker服务编排文件
 │   └── init-scripts/           # 数据库初始化脚本
-│       └── 01-init-postgres.sh # PostgreSQL初始化脚本
+│       ├── 01-init-postgres.sh # PostgreSQL初始化脚本
+│       ├── 02-init-neo4j.sh    # Neo4j初始化脚本
+│       └── init-all-databases.sh # 所有数据库初始化脚本
 └── ...
 ```
 
@@ -41,7 +43,28 @@ docker compose up -d
 - PostgreSQL数据库 (端口: 5432)
 - Neo4j图数据库 (端口: 7474, 7687)
 
-### 4. 验证服务状态
+### 4. 初始化数据库
+
+数据库服务启动后，需要初始化数据库结构：
+
+```bash
+cd deployment
+./init-scripts/init-all-databases.sh
+```
+
+或者分别初始化每个数据库：
+
+```bash
+# 初始化PostgreSQL
+docker exec -it wordmesh-postgres /init-scripts/01-init-postgres.sh
+
+# 初始化Neo4j
+docker cp init-scripts/02-init-neo4j.sh wordmesh-neo4j:/tmp/
+docker exec wordmesh-neo4j bash /tmp/02-init-neo4j.sh
+docker exec wordmesh-neo4j cypher-shell -u neo4j -p wordmesh123 --file /tmp/neo4j-init.cypher
+```
+
+### 5. 验证服务状态
 
 检查所有服务是否正常运行：
 
@@ -50,12 +73,12 @@ cd deployment
 docker compose ps
 ```
 
-### 5. 访问服务
+### 6. 访问服务
 
 - **PostgreSQL**: 通过 `localhost:5432` 访问
 - **Neo4j Browser**: 通过 `http://localhost:7474` 访问
 
-### 6. 停止服务
+### 7. 停止服务
 
 ```bash
 cd deployment

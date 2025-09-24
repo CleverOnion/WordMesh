@@ -1,0 +1,24 @@
+# WordMesh Backend - 测试环境配置
+
+[database]
+username = "wordmesh_test"
+password = "test123"
+host = "localhost"
+port = 5433
+database_name = "wordmesh_test"
+
+[neo4j]
+uri = "bolt://localhost:7688"
+username = "neo4j"
+password = "test123"
+
+[application]
+host = "127.0.0.1"
+port = 8081
+
+[jwt]
+secret = "test-secret-key"
+expiration_hours = 1
+
+[logging]
+level = "warn"

@@ -1,0 +1,25 @@
+# WordMesh Backend - 默认配置
+# 所有环境的基础配置，会被具体环境配置覆盖
+
+[database]
+username = "wordmesh"
+password = "wordmesh123"
+host = "localhost"
+port = 5432
+database_name = "wordmesh"
+
+[neo4j]
+uri = "bolt://localhost:7687"
+username = "neo4j"
+password = "wordmesh123"
+
+[application]
+host = "127.0.0.1"
+port = 8080
+
+[jwt]
+secret = "default-secret-key"
+expiration_hours = 24
+
+[logging]
+level = "info"

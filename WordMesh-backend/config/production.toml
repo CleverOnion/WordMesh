@@ -1,0 +1,25 @@
+# WordMesh Backend - 生产环境配置
+# 注意：生产环境配置应该通过环境变量设置，此文件仅作为参考
+
+[database]
+username = "wordmesh_prod"
+password = "CHANGE_ME_IN_PRODUCTION"
+host = "localhost"
+port = 5432
+database_name = "wordmesh_prod"
+
+[neo4j]
+uri = "bolt://localhost:7687"
+username = "neo4j"
+password = "CHANGE_ME_IN_PRODUCTION"
+
+[application]
+host = "0.0.0.0"
+port = 8080
+
+[jwt]
+secret = "CHANGE_ME_IN_PRODUCTION"
+expiration_hours = 24
+
+[logging]
+level = "info"

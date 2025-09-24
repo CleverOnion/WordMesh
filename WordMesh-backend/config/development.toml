@@ -1,0 +1,24 @@
+# WordMesh Backend - 开发环境配置
+
+[database]
+username = "wordmesh"
+password = "wordmesh123"
+host = "localhost"
+port = 5432
+database_name = "wordmesh_dev"
+
+[neo4j]
+uri = "bolt://localhost:7687"
+username = "neo4j"
+password = "wordmesh123"
+
+[application]
+host = "127.0.0.1"
+port = 8080
+
+[jwt]
+secret = "dev-secret-key-not-for-production"
+expiration_hours = 24
+
+[logging]
+level = "debug"
