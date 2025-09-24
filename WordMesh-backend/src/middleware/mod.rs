@@ -1,3 +1,3 @@
-pub mod error_handler;
+pub mod request_id;
 
-pub use error_handler::{error_handler_middleware, AppResult, BusinessResult, SystemResult};
+pub use request_id::RequestId;

@@ -14,7 +14,7 @@ mod util;
 
 use config::Settings;
 use util::{AppError, ResponseBuilder};
-use middleware::error_handler_middleware;
+use middleware::RequestId;
 
 #[actix_web::main]
 async fn main() -> Result<(), AppError> {
@@ -38,7 +38,7 @@ async fn main() -> Result<(), AppError> {
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
-            .wrap_fn(error_handler_middleware)  // 全局错误处理中间件
+            .wrap(RequestId)
             .app_data(web::Data::new(settings.clone()))
             .service(
                 web::scope("/api/v1")
