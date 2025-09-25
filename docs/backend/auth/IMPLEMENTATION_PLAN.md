@@ -13,7 +13,7 @@
   - [x] 在 `config/settings.rs` 添加 `AuthSettings`
   - [x] 为 `Settings::validate()` 增加认证配置校验
   - [x] 更新各环境配置文件的占位键值
-- [x] 错误体系统一
+- [ ] 错误体系统一
   - [x] 扩展 `util::error`，增加 `BusinessError::Auth`
   - [x] 定义 `AuthFlowError` 及业务码映射
   - [x] 为错误新增单元测试（验证 ResponseError 输出）
