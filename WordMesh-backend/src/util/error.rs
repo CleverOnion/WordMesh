@@ -27,6 +27,8 @@ pub enum BusinessError {
     User(#[from] UserError),
     #[error(transparent)]
     Order(#[from] OrderError),
+    #[error(transparent)]
+    Auth(#[from] AuthFlowError),
     #[error("Validation failed")]
     Validation(Vec<ValidationField>),
 }
@@ -47,6 +49,19 @@ pub enum OrderError {
     OrderNotFound,
     #[error("Order already paid")]
     OrderAlreadyPaid,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Error)]
+pub enum AuthFlowError {
+    #[error("Invalid credentials")]
+    InvalidCredentials,
+    #[error("Token expired")]
+    TokenExpired,
+    #[error("Token invalid")]
+    TokenInvalid,
+    #[error("Refresh token disabled")]
+    RefreshDisabled,
 }
 
 #[allow(dead_code)]
@@ -112,6 +127,19 @@ impl ResponseError for AppError {
                     body.data = Some(fields.clone());
                     HttpResponse::Ok().json(body)
                 }
+                BusinessError::Auth(auth_error) => {
+                    let code = match auth_error {
+                        AuthFlowError::InvalidCredentials => 4011,
+                        AuthFlowError::TokenExpired => 4012,
+                        AuthFlowError::TokenInvalid => 4013,
+                        AuthFlowError::RefreshDisabled => 4014,
+                    };
+                    HttpResponse::Ok().json(ApiResponse::<serde_json::Value>::error_with_trace(
+                        code,
+                        auth_error.to_string(),
+                        ResponseBuilder::current_trace_id(),
+                    ))
+                }
                 _ => HttpResponse::Ok().json(ApiResponse::<serde_json::Value>::error_with_trace(
                     4000,
                     be.to_string(),
@@ -136,5 +164,41 @@ impl ResponseError for AppError {
                 ))
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use actix_web::body::to_bytes;
+
+    #[actix_rt::test]
+    async fn business_auth_error_maps_to_expected_code() {
+        let error = AppError::from(BusinessError::from(AuthFlowError::InvalidCredentials));
+        let response = error.error_response();
+        assert_eq!(response.status(), actix_web::http::StatusCode::OK);
+
+        let body = to_bytes(response.into_body()).await.unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["error"]["code"], 4011);
+        assert_eq!(json["error"]["message"], "Invalid credentials");
+    }
+
+    #[actix_rt::test]
+    async fn validation_error_returns_fields() {
+        let fields = vec![ValidationField {
+            field: "username".into(),
+            message: "required".into(),
+        }];
+        let error = AppError::from(BusinessError::Validation(fields.clone()));
+        let response = error.error_response();
+        let body = to_bytes(response.into_body()).await.unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(json["error"]["code"], 4001);
+        assert!(json["data"].is_array());
+        assert_eq!(json["data"][0]["field"], "username");
+        assert_eq!(json["data"][0]["message"], "required");
+        assert!(json["meta"]["trace_id"].is_string());
     }
 }

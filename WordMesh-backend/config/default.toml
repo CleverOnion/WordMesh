@@ -7,6 +7,8 @@ password = "wordmesh123"
 host = "localhost"
 port = 5432
 database_name = "wordmesh"
+max_connections = 5
+connect_timeout_seconds = 5
 
 [neo4j]
 uri = "bolt://localhost:7687"
@@ -19,7 +21,21 @@ port = 8080
 
 [jwt]
 secret = "default-secret-key"
-expiration_hours = 24
+issuer = "wordmesh-backend"
+access_token_ttl_minutes = 60
+refresh_token_ttl_hours = 24
+
+[auth]
+enabled = true
+
+[auth.jwt]
+algorithm = "HS256"
+access_ttl_secs = 3600
+refresh_ttl_secs = 604800
+
+[auth.password]
+min_length = 8
+require_complexity = false
 
 [logging]
 level = "info"

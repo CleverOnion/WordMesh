@@ -18,7 +18,22 @@ port = 8081
 
 [jwt]
 secret = "test-secret-key"
-expiration_hours = 1
+issuer = "wordmesh-backend"
+access_token_ttl_minutes = 30
+refresh_token_ttl_hours = 1
+
+[auth]
+enabled = true
+
+[auth.jwt]
+algorithm = "HS256"
+access_ttl_secs = 900  # 测试环境缩短有效期便于验证
+refresh_ttl_secs = 1800
+secret = "test-auth-secret"
+
+[auth.password]
+min_length = 8
+require_complexity = false
 
 [logging]
 level = "warn"

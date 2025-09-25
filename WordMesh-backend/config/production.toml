@@ -19,7 +19,23 @@ port = 8080
 
 [jwt]
 secret = "CHANGE_ME_IN_PRODUCTION"
-expiration_hours = 24
+issuer = "wordmesh-backend"
+access_token_ttl_minutes = 60
+refresh_token_ttl_hours = 24
+
+[auth]
+enabled = true
+
+[auth.jwt]
+algorithm = "RS256"
+access_ttl_secs = 3600
+refresh_ttl_secs = 604800
+private_key = "CHANGE_ME_IN_PRODUCTION"
+public_key = "CHANGE_ME_IN_PRODUCTION"
+
+[auth.password]
+min_length = 8
+require_complexity = true
 
 [logging]
 level = "info"
