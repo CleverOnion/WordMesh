@@ -1,9 +1,9 @@
-use std::future::{ready, Ready};
+use std::future::{Ready, ready};
+use std::pin::Pin;
 
-use actix_web::dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform};
-use actix_web::Error;
-use futures_util::future::LocalBoxFuture;
+use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform, forward_ready};
 use actix_web::http::header::{HeaderName, HeaderValue};
+use actix_web::{Error, HttpMessage};
 use uuid::Uuid;
 
 /// 确保每个请求拥有 `X-Request-Id` 的中间件：
@@ -42,11 +42,12 @@ where
 {
     type Response = ServiceResponse<B>;
     type Error = Error;
-    type Future = LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
+    type Future =
+        Pin<Box<dyn std::future::Future<Output = Result<Self::Response, Self::Error>> + 'static>>;
 
     forward_ready!(service);
 
-    fn call(&self, mut req: ServiceRequest) -> Self::Future {
+    fn call(&self, req: ServiceRequest) -> Self::Future {
         let header_name = HeaderName::from_static("x-request-id");
         let incoming = req
             .headers()
@@ -79,5 +80,3 @@ where
         })
     }
 }
-
-

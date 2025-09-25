@@ -4,6 +4,7 @@ use serde::Serialize;
 use uuid::Uuid;
 
 #[derive(Serialize)]
+#[allow(non_snake_case)]
 pub struct ApiResponse<T>
 where
     T: Serialize,
@@ -54,7 +55,11 @@ impl ResponseBuilder {
     }
 
     /// 构建失败响应（HTTP 200），使用业务 code 与消息，data 为空
-    pub fn from_error(code: i32, message: impl Into<String>) -> Result<HttpResponse, crate::util::AppError> {
+    #[allow(dead_code)]
+    pub fn from_error(
+        code: i32,
+        message: impl Into<String>,
+    ) -> Result<HttpResponse, crate::util::AppError> {
         let trace_id = Self::current_trace_id();
         let body = ApiResponse::<serde_json::Value>::error_with_trace(code, message, trace_id);
         Ok(HttpResponse::Ok().json(body))
@@ -96,5 +101,3 @@ pub struct ValidationErrorData {
 tokio::task_local! {
     pub static REQUEST_ID: String;
 }
-
-

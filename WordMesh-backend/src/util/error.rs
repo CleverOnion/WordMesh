@@ -16,69 +16,78 @@ pub enum AppError {
     AuthError(#[from] AuthError),
     #[error(transparent)]
     InternalError(#[from] InternalError),
+    #[error(transparent)]
+    IoError(#[from] std::io::Error),
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Error)]
 pub enum BusinessError {
     #[error(transparent)]
     User(#[from] UserError),
     #[error(transparent)]
     Order(#[from] OrderError),
-    #[error("Validation failed")] 
+    #[error("Validation failed")]
     Validation(Vec<ValidationField>),
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Error)]
 pub enum UserError {
-    #[error("User not found")] 
+    #[error("User not found")]
     UserNotFound,
-    #[error("Invalid username")] 
+    #[error("Invalid username")]
     InvalidUsername,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Error)]
 pub enum OrderError {
-    #[error("Order not found")] 
+    #[error("Order not found")]
     OrderNotFound,
-    #[error("Order already paid")] 
+    #[error("Order already paid")]
     OrderAlreadyPaid,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Error)]
 pub enum DbError {
-    #[error("Database connection failed")] 
+    #[error("Database connection failed")]
     ConnectionFailed,
-    #[error("Unique constraint violation")] 
+    #[error("Unique constraint violation")]
     UniqueConstraintViolation,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Error)]
 pub enum ExternalError {
-    #[error("HTTP client error")] 
+    #[error("HTTP client error")]
     HttpClientError,
-    #[error("Request timeout")] 
+    #[error("Request timeout")]
     Timeout,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Error)]
 pub enum AuthError {
-    #[error("Unauthorized")] 
+    #[error("Unauthorized")]
     Unauthorized,
-    #[error("Token expired")] 
+    #[error("Token expired")]
     TokenExpired,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Error)]
 pub enum InternalError {
     #[error(transparent)]
     IoError(#[from] std::io::Error),
-    #[error("Internal panic")] 
+    #[error("Internal panic")]
     Panic,
-    #[error("Unknown error")] 
+    #[error("Unknown error")]
     Unknown,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct ValidationField {
     pub field: String,
     pub message: String,
@@ -98,7 +107,9 @@ impl ResponseError for AppError {
                 BusinessError::Validation(fields) => {
                     let trace_id = crate::util::response::ResponseBuilder::current_trace_id();
                     let message = "参数校验失败".to_string();
-                    let body = ApiResponse::error_with_trace(4001, message, trace_id);
+                    let mut body: ApiResponse<Vec<ValidationField>> =
+                        ApiResponse::error_with_trace(4001, message, trace_id);
+                    body.data = Some(fields.clone());
                     HttpResponse::Ok().json(body)
                 }
                 _ => HttpResponse::Ok().json(ApiResponse::<serde_json::Value>::error_with_trace(
@@ -107,14 +118,17 @@ impl ResponseError for AppError {
                     ResponseBuilder::current_trace_id(),
                 )),
             },
-            AppError::AuthError(ae) => HttpResponse::Ok().json(
-                ApiResponse::<serde_json::Value>::error_with_trace(
+            AppError::AuthError(ae) => {
+                HttpResponse::Ok().json(ApiResponse::<serde_json::Value>::error_with_trace(
                     4010,
                     ae.to_string(),
                     ResponseBuilder::current_trace_id(),
-                ),
-            ),
-            AppError::DbError(_) | AppError::ExternalError(_) | AppError::InternalError(_) => {
+                ))
+            }
+            AppError::DbError(_)
+            | AppError::ExternalError(_)
+            | AppError::InternalError(_)
+            | AppError::IoError(_) => {
                 HttpResponse::Ok().json(ApiResponse::<serde_json::Value>::error_with_trace(
                     5000,
                     "内部服务错误",
@@ -124,6 +138,3 @@ impl ResponseError for AppError {
         }
     }
 }
-
-
-

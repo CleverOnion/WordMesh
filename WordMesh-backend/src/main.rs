@@ -1,20 +1,21 @@
-use actix_web::{web, App, HttpServer, middleware::Logger};
+use actix_web::{App, HttpServer, middleware::Logger, web};
+use std::sync::Arc;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+mod application;
 mod config;
 mod controller;
-mod application;
-mod service;
-mod repository;
 mod domain;
+mod dto;
 mod event;
 mod middleware;
-mod dto;
+mod repository;
+mod service;
 mod util;
 
 use config::Settings;
-use util::{AppError, ResponseBuilder};
 use middleware::RequestId;
+use util::{AppError, ResponseBuilder};
 
 #[actix_web::main]
 async fn main() -> Result<(), AppError> {
@@ -28,29 +29,36 @@ async fn main() -> Result<(), AppError> {
         .init();
 
     // Load configuration
-    let settings = Settings::load().unwrap_or_else(|_| Settings::default());
-    
-    tracing::info!("Starting WordMesh backend server on {}:{}", 
-                   settings.application.host, 
-                   settings.application.port);
+    let settings = Arc::new(Settings::load().unwrap_or_else(|_| Settings::default()));
+
+    tracing::info!(
+        "Starting WordMesh backend server on {}:{}",
+        settings.application.host,
+        settings.application.port
+    );
 
     // Start HTTP server
+    let address = format!(
+        "{}:{}",
+        settings.application.host, settings.application.port
+    );
+    let shared_settings = settings.clone();
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
             .wrap(RequestId)
-            .app_data(web::Data::new(settings.clone()))
+            .app_data(web::Data::new(shared_settings.clone()))
             .service(
                 web::scope("/api/v1")
                     // Health check endpoint
-                    .route("/health", web::get().to(health_check))
+                    .route("/health", web::get().to(health_check)),
             )
     })
-    .bind(format!("{}:{}", settings.application.host, settings.application.port))?
+    .bind(address)
+    .map_err(AppError::from)?
     .run()
-    .await?;
-
-    Ok(())
+    .await
+    .map_err(AppError::from)
 }
 
 async fn health_check() -> Result<actix_web::HttpResponse, AppError> {

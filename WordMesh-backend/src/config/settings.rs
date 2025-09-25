@@ -1,6 +1,7 @@
 use serde::Deserialize;
 use std::env;
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize, Clone)]
 pub struct Settings {
     pub database: DatabaseSettings,
@@ -10,6 +11,7 @@ pub struct Settings {
     pub logging: LoggingSettings,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize, Clone)]
 pub struct DatabaseSettings {
     pub username: String,
@@ -20,6 +22,7 @@ pub struct DatabaseSettings {
 }
 
 impl DatabaseSettings {
+    #[allow(dead_code)]
     pub fn connection_string(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}",
@@ -28,6 +31,7 @@ impl DatabaseSettings {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize, Clone)]
 pub struct Neo4jSettings {
     pub uri: String,
@@ -35,24 +39,28 @@ pub struct Neo4jSettings {
     pub password: String,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize, Clone)]
 pub struct ApplicationSettings {
     pub host: String,
     pub port: u16,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize, Clone)]
 pub struct JwtSettings {
     pub secret: String,
     pub expiration_hours: i64,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize, Clone)]
 pub struct LoggingSettings {
     pub level: String,
 }
 
 impl Settings {
+    #[allow(dead_code)]
     pub fn load() -> Result<Self, config::ConfigError> {
         // 获取运行环境
         let environment = env::var("RUST_ENV").unwrap_or_else(|_| "development".to_string());
@@ -70,6 +78,7 @@ impl Settings {
         config.try_deserialize()
     }
 
+    #[allow(dead_code)]
     pub fn load_for_environment(env: &str) -> Result<Self, config::ConfigError> {
         // 构建指定环境的配置
         let config = config::Config::builder()
