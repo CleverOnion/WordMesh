@@ -59,10 +59,10 @@
   - [x] 在 `controller` 编写 `/register`、`/login`、`/refresh`、`/profile` handler
   - [x] 封装统一响应与错误处理
   - [x] 将 `AuthService` 注入 Actix 应用状态
-- [ ] 中间件
-  - [ ] 实现 `AuthGuard`（解析 Bearer Token）
-  - [ ] 将用户信息放入请求扩展
-  - [ ] 更新 `main.rs` 中间件链路与路由注册
+- [x] 中间件
+  - [x] 实现 `AuthGuard`（解析 Bearer Token）
+  - [x] 将用户信息放入请求扩展
+  - [x] 更新 `main.rs` 中间件链路与路由注册
 
 ## 5. 测试与验证
 

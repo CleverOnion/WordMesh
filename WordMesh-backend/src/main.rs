@@ -14,7 +14,10 @@ mod service;
 mod util;
 
 use config::Settings;
+use controller::auth::AuthController;
 use middleware::RequestId;
+use repository::PgUserRepository;
+use service::auth::AuthService;
 use util::{AppError, ResponseBuilder};
 
 #[actix_web::main]
@@ -44,6 +47,7 @@ async fn main() -> Result<(), AppError> {
     );
     let shared_settings = settings.clone();
     HttpServer::new(move || {
+        let auth_controller = web::Data::new(build_auth_controller(shared_settings.clone()));
         App::new()
             .wrap(Logger::default())
             .wrap(RequestId)
@@ -51,7 +55,8 @@ async fn main() -> Result<(), AppError> {
             .service(
                 web::scope("/api/v1")
                     // Health check endpoint
-                    .route("/health", web::get().to(health_check)),
+                    .route("/health", web::get().to(health_check))
+                    .configure(|cfg| AuthController::configure(cfg, auth_controller.clone())),
             )
     })
     .bind(address)
@@ -59,6 +64,18 @@ async fn main() -> Result<(), AppError> {
     .run()
     .await
     .map_err(AppError::from)
+}
+
+fn build_auth_controller(settings: Arc<Settings>) -> AuthController<PgUserRepository> {
+    let db_settings = &settings.database;
+    let pool = sqlx::postgres::PgPoolOptions::new()
+        .max_connections(db_settings.max_connections)
+        .connect_lazy_with(db_settings.connect_options());
+    let repository = PgUserRepository::new(pool);
+    let auth_settings = &settings.auth;
+    let auth_service = AuthService::new(repository, auth_settings, &auth_settings.jwt)
+        .expect("failed to initialize auth service");
+    AuthController::new(auth_service)
 }
 
 async fn health_check() -> Result<actix_web::HttpResponse, AppError> {

@@ -63,6 +63,10 @@ where
         })
     }
 
+    pub fn token_config(&self) -> Arc<TokenConfig> {
+        self.token_config.clone()
+    }
+
     pub async fn register(&self, payload: RegisterRequest) -> Result<ProfileResponse, AppError> {
         self.ensure_enabled()?;
         payload

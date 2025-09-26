@@ -1,12 +1,9 @@
-use actix_web::{web, HttpRequest, HttpResponse, FromRequest};
-use actix_web::dev::Payload;
-use serde::Deserialize;
-use std::future::{ready, Ready};
+use actix_web::{web, HttpResponse};
 use std::sync::Arc;
 
 use crate::dto::auth::{LoginRequest, RefreshRequest, RegisterRequest};
+use crate::middleware::{AuthGuard, AuthenticatedUser};
 use crate::service::auth::AuthService;
-use crate::util::error::{AuthFlowError, BusinessError};
 use crate::util::{AppError, ResponseBuilder};
 
 #[derive(Clone)]
@@ -27,13 +24,20 @@ where
         }
     }
 
-    pub fn configure(cfg: &mut web::ServiceConfig, controller: AuthController<R>) {
-        let controller = web::Data::new(controller);
-        cfg.app_data(controller.clone())
-            .route("/auth/register", web::post().to(Self::register))
-            .route("/auth/login", web::post().to(Self::login))
-            .route("/auth/refresh", web::post().to(Self::refresh))
-            .route("/auth/profile", web::get().to(Self::profile));
+    pub fn configure(cfg: &mut web::ServiceConfig, controller: web::Data<AuthController<R>>) {
+        let guard = controller.auth_guard();
+        cfg.service(
+            web::scope("/auth")
+                .app_data(controller.clone())
+                .route("/register", web::post().to(Self::register))
+                .route("/login", web::post().to(Self::login))
+                .route("/refresh", web::post().to(Self::refresh))
+                .service(
+                    web::resource("/profile")
+                        .wrap(guard)
+                        .route(web::get().to(Self::profile)),
+                ),
+        );
     }
 
     async fn register(
@@ -62,34 +66,14 @@ where
 
     async fn profile(
         controller: web::Data<AuthController<R>>,
-        identity: Identity,
+        identity: AuthenticatedUser,
     ) -> Result<HttpResponse, AppError> {
-        let user_id = identity
-            .user_id
-            .ok_or_else(|| AppError::from(BusinessError::Auth(AuthFlowError::InvalidCredentials)))?;
-        let profile = controller.service.profile(user_id).await?;
+        let profile = controller.service.profile(identity.user_id).await?;
         ResponseBuilder::ok(profile)
     }
-}
 
-#[derive(Debug, Clone, Deserialize)]
-pub struct Identity {
-    pub user_id: Option<i64>,
-}
-
-impl FromRequest for Identity {
-    type Error = actix_web::Error;
-    type Future = Ready<Result<Self, Self::Error>>;
-
-    fn from_request(req: &HttpRequest, _: &mut Payload) -> Self::Future {
-        if let Some(header) = req.headers().get("X-User-Id") {
-            if let Ok(value) = header.to_str() {
-                if let Ok(id) = value.parse::<i64>() {
-                    return ready(Ok(Identity { user_id: Some(id) }));
-                }
-            }
-        }
-        ready(Ok(Identity { user_id: None }))
+    fn auth_guard(&self) -> AuthGuard {
+        AuthGuard::new(self.service.token_config())
     }
 }
 
@@ -171,7 +155,7 @@ mod tests {
 
     #[actix_rt::test]
     async fn register_endpoint_returns_profile() {
-        let controller = AuthController::new(service());
+        let controller = web::Data::new(AuthController::new(service()));
         let app = test::init_service(App::new().configure(|cfg| AuthController::configure(cfg, controller.clone()))).await;
 
         let req = test::TestRequest::post()
@@ -187,7 +171,7 @@ mod tests {
 
     #[actix_rt::test]
     async fn login_endpoint_returns_tokens() {
-        let controller = AuthController::new(service());
+        let controller = web::Data::new(AuthController::new(service()));
         let app = test::init_service(App::new().configure(|cfg| AuthController::configure(cfg, controller.clone()))).await;
 
         // register first
@@ -210,7 +194,7 @@ mod tests {
 
     #[actix_rt::test]
     async fn profile_requires_identity() {
-        let controller = AuthController::new(service());
+        let controller = web::Data::new(AuthController::new(service()));
         let app = test::init_service(App::new().configure(|cfg| AuthController::configure(cfg, controller.clone()))).await;
 
         let register = test::TestRequest::post()
@@ -222,11 +206,22 @@ mod tests {
         let body: serde_json::Value = test::read_body_json(resp).await;
         let user_id = body["data"]["id"].as_i64().unwrap();
 
+        let login = test::TestRequest::post()
+            .uri("/auth/login")
+            .set_json(&json!({ "username": "user_profile", "password": "password123" }))
+            .to_request();
+        let login_resp = test::call_service(&app, login).await;
+        assert!(login_resp.status().is_success());
+        let login_body: serde_json::Value = test::read_body_json(login_resp).await;
+        let token = login_body["data"]["access_token"].as_str().unwrap();
+
         let req = test::TestRequest::get()
             .uri("/auth/profile")
-            .insert_header(("X-User-Id", user_id.to_string()))
+            .insert_header(("Authorization", format!("Bearer {}", token)))
             .to_request();
         let resp = test::call_service(&app, req).await;
         assert!(resp.status().is_success());
+        let body: serde_json::Value = test::read_body_json(resp).await;
+        assert_eq!(body["data"]["id"].as_i64().unwrap(), user_id);
     }
 }
