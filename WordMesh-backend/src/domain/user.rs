@@ -4,14 +4,16 @@ use regex::Regex;
 use thiserror::Error;
 use validator::{Validate, ValidationError};
 
-pub static USERNAME_REGEX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"^[A-Za-z0-9_]{3,32}$").expect("username regex must compile")
-});
+pub static USERNAME_REGEX: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^[A-Za-z0-9_]{3,32}$").expect("username regex must compile"));
 
 #[derive(Debug, Clone, Validate)]
 pub struct User {
     pub id: i64,
-    #[validate(length(min = 3, max = 32), custom(function = "validate_username_format"))]
+    #[validate(
+        length(min = 3, max = 32),
+        custom(function = "validate_username_format")
+    )]
     pub username: String,
     pub password_hash: HashedPassword,
     pub created_at: DateTime<Utc>,
@@ -50,8 +52,14 @@ impl From<PasswordHashError> for UserDomainError {
     }
 }
 
+
 impl User {
-    pub fn new(id: i64, username: String, password_hash: HashedPassword, created_at: DateTime<Utc>) -> Result<Self, UserDomainError> {
+    pub fn new(
+        id: i64,
+        username: String,
+        password_hash: HashedPassword,
+        created_at: DateTime<Utc>,
+    ) -> Result<Self, UserDomainError> {
         let username = validate_username(username)?;
         Ok(Self {
             id,
@@ -61,7 +69,11 @@ impl User {
         })
     }
 
-    pub fn from_registration(username: String, password_hash: HashedPassword) -> Result<Self, UserDomainError> {
+    #[allow(dead_code)]
+    pub fn from_registration(
+        username: String,
+        password_hash: HashedPassword,
+    ) -> Result<Self, UserDomainError> {
         let username = validate_username(username)?;
         Ok(Self {
             id: 0,
@@ -115,13 +127,19 @@ mod tests {
     #[test]
     fn username_validation_failure_length() {
         let username = "ab".to_string();
-        assert!(matches!(validate_username(username), Err(UsernameValidationError::InvalidLength)));
+        assert!(matches!(
+            validate_username(username),
+            Err(UsernameValidationError::InvalidLength)
+        ));
     }
 
     #[test]
     fn username_validation_failure_format() {
         let username = "invalid-username".to_string();
-        assert!(matches!(validate_username(username), Err(UsernameValidationError::InvalidFormat)));
+        assert!(matches!(
+            validate_username(username),
+            Err(UsernameValidationError::InvalidFormat)
+        ));
     }
 
     #[test]

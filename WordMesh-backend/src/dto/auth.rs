@@ -3,7 +3,10 @@ use validator::Validate;
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct RegisterRequest {
-    #[validate(length(min = 3, max = 32, message = "用户名长度必须在 3 到 32 之间"), custom(function = "crate::domain::user::validate_username_format"))]
+    #[validate(
+        length(min = 3, max = 32, message = "用户名长度必须在 3 到 32 之间"),
+        custom(function = "crate::domain::user::validate_username_format")
+    )]
     pub username: String,
     #[validate(length(min = 8, message = "密码长度至少 8 位"))]
     pub password: String,
@@ -11,7 +14,10 @@ pub struct RegisterRequest {
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct LoginRequest {
-    #[validate(length(min = 3, max = 32, message = "用户名长度必须在 3 到 32 之间"), custom(function = "crate::domain::user::validate_username_format"))]
+    #[validate(
+        length(min = 3, max = 32, message = "用户名长度必须在 3 到 32 之间"),
+        custom(function = "crate::domain::user::validate_username_format")
+    )]
     pub username: String,
     #[validate(length(min = 8, message = "密码长度至少 8 位"))]
     pub password: String,

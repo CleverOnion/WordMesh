@@ -6,12 +6,16 @@ use validator::{Validate, ValidationErrors};
 
 use crate::config::settings::{AuthJwtSettings, AuthSettings};
 use crate::domain::HashedPassword;
-use crate::dto::auth::{AuthTokens, LoginRequest, ProfileResponse, RefreshRequest, RegisterRequest};
+use crate::dto::auth::{
+    AuthTokens, LoginRequest, ProfileResponse, RefreshRequest, RegisterRequest,
+};
 use crate::repository::user::{NewUser, RepositoryError, UserRepository};
-use crate::util::error::{AuthFlowError, BusinessError, InternalError, ValidationField};
-use crate::util::password::{hash_password, verify_password, PasswordError};
-use crate::util::token::{generate_access_token, generate_refresh_token, validate_token, TokenConfig, TokenError};
 use crate::util::AppError;
+use crate::util::error::{AuthFlowError, BusinessError, InternalError, ValidationField};
+use crate::util::password::{PasswordError, hash_password, verify_password};
+use crate::util::token::{
+    TokenConfig, TokenError, generate_access_token, generate_refresh_token, validate_token,
+};
 
 #[derive(Clone)]
 pub struct AuthService<R: UserRepository + Send + Sync + 'static> {
@@ -22,6 +26,7 @@ pub struct AuthService<R: UserRepository + Send + Sync + 'static> {
 }
 
 #[derive(Debug, Error)]
+#[allow(dead_code)]
 pub enum AuthServiceError {
     #[error("validation failed")]
     Validation(Vec<ValidationField>),
@@ -36,14 +41,26 @@ pub enum AuthServiceError {
 impl From<AuthServiceError> for AppError {
     fn from(err: AuthServiceError) -> Self {
         match err {
-            AuthServiceError::Validation(fields) => AppError::from(BusinessError::Validation(fields)),
-            AuthServiceError::InvalidCredentials => AppError::from(BusinessError::Auth(AuthFlowError::InvalidCredentials)),
-            AuthServiceError::Token(TokenError::RefreshDisabled) => AppError::from(BusinessError::Auth(AuthFlowError::RefreshDisabled)),
-            AuthServiceError::Token(TokenError::Decode(_)) => AppError::from(BusinessError::Auth(AuthFlowError::TokenInvalid)),
-            AuthServiceError::Token(TokenError::Encode(_)) => AppError::from(BusinessError::Auth(AuthFlowError::TokenInvalid)),
+            AuthServiceError::Validation(fields) => {
+                AppError::from(BusinessError::Validation(fields))
+            }
+            AuthServiceError::InvalidCredentials => {
+                AppError::from(BusinessError::Auth(AuthFlowError::InvalidCredentials))
+            }
+            AuthServiceError::Token(TokenError::RefreshDisabled) => {
+                AppError::from(BusinessError::Auth(AuthFlowError::RefreshDisabled))
+            }
+            AuthServiceError::Token(TokenError::Decode(_)) => {
+                AppError::from(BusinessError::Auth(AuthFlowError::TokenInvalid))
+            }
+            AuthServiceError::Token(TokenError::Encode(_)) => {
+                AppError::from(BusinessError::Auth(AuthFlowError::TokenInvalid))
+            }
             AuthServiceError::Repository(err) => match err {
                 RepositoryError::Database(_) => AppError::from(InternalError::Unknown),
-                RepositoryError::Domain(_) => AppError::from(BusinessError::Auth(AuthFlowError::InvalidCredentials)),
+                RepositoryError::Domain(_) => {
+                    AppError::from(BusinessError::Auth(AuthFlowError::InvalidCredentials))
+                }
             },
         }
     }
@@ -53,7 +70,11 @@ impl<R> AuthService<R>
 where
     R: UserRepository + Send + Sync + 'static,
 {
-    pub fn new(repository: R, auth_settings: &AuthSettings, jwt_settings: &AuthJwtSettings) -> Result<Self, AppError> {
+    pub fn new(
+        repository: R,
+        auth_settings: &AuthSettings,
+        jwt_settings: &AuthJwtSettings,
+    ) -> Result<Self, AppError> {
         let token_config = build_token_config(jwt_settings)?;
         Ok(Self {
             repository: Arc::new(repository),
@@ -73,8 +94,10 @@ where
             .validate()
             .map_err(|err| AppError::from(BusinessError::Validation(validation_errors(err))))?;
 
-        let hashed = hash_password(&payload.password, self.password_cost).map_err(map_password_error)?;
-        let password_hash = HashedPassword::new(hashed).map_err(|_| AppError::from(BusinessError::Auth(AuthFlowError::InvalidCredentials)))?;
+        let hashed =
+            hash_password(&payload.password, self.password_cost).map_err(map_password_error)?;
+        let password_hash = HashedPassword::new(hashed)
+            .map_err(|_| AppError::from(BusinessError::Auth(AuthFlowError::InvalidCredentials)))?;
 
         let new_user = NewUser {
             username: payload.username.clone(),
@@ -105,19 +128,28 @@ where
             .find_by_username(&payload.username)
             .await
             .map_err(map_repository_error)?
-            .ok_or_else(|| AppError::from(BusinessError::Auth(AuthFlowError::InvalidCredentials)))?;
+            .ok_or_else(|| {
+                AppError::from(BusinessError::Auth(AuthFlowError::InvalidCredentials))
+            })?;
 
-        let password_ok = verify_password(&payload.password, user.password_hash.as_str()).map_err(map_password_error)?;
+        let password_ok = verify_password(&payload.password, user.password_hash.as_str())
+            .map_err(map_password_error)?;
         if !password_ok {
-            return Err(AppError::from(BusinessError::Auth(AuthFlowError::InvalidCredentials)));
+            return Err(AppError::from(BusinessError::Auth(
+                AuthFlowError::InvalidCredentials,
+            )));
         }
 
-        let access_token = generate_access_token(&self.token_config, &user.id.to_string(), None, None)
-            .map_err(map_token_error)?;
+        let access_token =
+            generate_access_token(&self.token_config, &user.id.to_string(), None, None)
+                .map_err(map_token_error)?;
         let refresh_token = self
             .token_config
             .refresh_ttl_secs
-            .map(|_| generate_refresh_token(&self.token_config, &user.id.to_string(), None).map_err(map_token_error))
+            .map(|_| {
+                generate_refresh_token(&self.token_config, &user.id.to_string(), None)
+                    .map_err(map_token_error)
+            })
             .transpose()?;
 
         Ok(AuthTokens {
@@ -132,8 +164,8 @@ where
             .validate()
             .map_err(|err| AppError::from(BusinessError::Validation(validation_errors(err))))?;
 
-        let claims = validate_token(&self.token_config, &payload.refresh_token)
-            .map_err(map_token_error)?;
+        let claims =
+            validate_token(&self.token_config, &payload.refresh_token).map_err(map_token_error)?;
 
         let user_id = claims
             .sub
@@ -145,14 +177,28 @@ where
             .find_by_id(user_id)
             .await
             .map_err(map_repository_error)?
-            .ok_or_else(|| AppError::from(BusinessError::Auth(AuthFlowError::InvalidCredentials)))?;
+            .ok_or_else(|| {
+                AppError::from(BusinessError::Auth(AuthFlowError::InvalidCredentials))
+            })?;
 
-        let access_token = generate_access_token(&self.token_config, &user.id.to_string(), claims.scope.clone(), claims.request_id.clone())
-            .map_err(map_token_error)?;
+        let access_token = generate_access_token(
+            &self.token_config,
+            &user.id.to_string(),
+            claims.scope.clone(),
+            claims.request_id.clone(),
+        )
+        .map_err(map_token_error)?;
         let refresh_token = self
             .token_config
             .refresh_ttl_secs
-            .map(|_| generate_refresh_token(&self.token_config, &user.id.to_string(), claims.request_id.clone()).map_err(map_token_error))
+            .map(|_| {
+                generate_refresh_token(
+                    &self.token_config,
+                    &user.id.to_string(),
+                    claims.request_id.clone(),
+                )
+                .map_err(map_token_error)
+            })
             .transpose()?;
 
         Ok(AuthTokens {
@@ -168,7 +214,9 @@ where
             .find_by_id(user_id)
             .await
             .map_err(map_repository_error)?
-            .ok_or_else(|| AppError::from(BusinessError::Auth(AuthFlowError::InvalidCredentials)))?;
+            .ok_or_else(|| {
+                AppError::from(BusinessError::Auth(AuthFlowError::InvalidCredentials))
+            })?;
 
         Ok(ProfileResponse {
             id: user.id,
@@ -179,7 +227,9 @@ where
 
     fn ensure_enabled(&self) -> Result<(), AppError> {
         if !self.auth_enabled {
-            Err(AppError::from(BusinessError::Auth(AuthFlowError::RefreshDisabled)))
+            Err(AppError::from(BusinessError::Auth(
+                AuthFlowError::RefreshDisabled,
+            )))
         } else {
             Ok(())
         }
@@ -189,7 +239,9 @@ where
 fn map_repository_error(err: RepositoryError) -> AppError {
     match err {
         RepositoryError::Database(_) => AppError::from(InternalError::Unknown),
-        RepositoryError::Domain(_) => AppError::from(BusinessError::Auth(AuthFlowError::InvalidCredentials)),
+        RepositoryError::Domain(_) => {
+            AppError::from(BusinessError::Auth(AuthFlowError::InvalidCredentials))
+        }
     }
 }
 
@@ -248,8 +300,10 @@ fn build_token_config(jwt_settings: &AuthJwtSettings) -> Result<TokenConfig, App
                 .clone()
                 .ok_or_else(|| AppError::from(InternalError::Unknown))?;
             (
-                EncodingKey::from_rsa_pem(private.as_bytes()).map_err(|_| AppError::from(InternalError::Unknown))?,
-                DecodingKey::from_rsa_pem(public.as_bytes()).map_err(|_| AppError::from(InternalError::Unknown))?,
+                EncodingKey::from_rsa_pem(private.as_bytes())
+                    .map_err(|_| AppError::from(InternalError::Unknown))?,
+                DecodingKey::from_rsa_pem(public.as_bytes())
+                    .map_err(|_| AppError::from(InternalError::Unknown))?,
             )
         }
         _ => unreachable!(),
@@ -271,7 +325,9 @@ fn build_token_config(jwt_settings: &AuthJwtSettings) -> Result<TokenConfig, App
 
 fn map_token_error(err: TokenError) -> AppError {
     match err {
-        TokenError::RefreshDisabled => AppError::from(BusinessError::Auth(AuthFlowError::RefreshDisabled)),
+        TokenError::RefreshDisabled => {
+            AppError::from(BusinessError::Auth(AuthFlowError::RefreshDisabled))
+        }
         TokenError::Decode(_) => AppError::from(BusinessError::Auth(AuthFlowError::TokenInvalid)),
         TokenError::Encode(_) => AppError::from(InternalError::Unknown),
     }
@@ -301,12 +357,20 @@ mod tests {
             let mut users = self.users.write().await;
             let mut username_idx = self.username_index.write().await;
             if username_idx.contains_key(&new_user.username) {
-                return Err(RepositoryError::Domain(crate::domain::UserDomainError::InvalidUsername(
-                    crate::domain::UsernameValidationError::InvalidFormat,
-                )));
+                return Err(RepositoryError::Domain(
+                    crate::domain::UserDomainError::InvalidUsername(
+                        crate::domain::UsernameValidationError::InvalidFormat,
+                    ),
+                ));
             }
             let id = (users.len() + 1) as i64;
-            let user = User::new(id, new_user.username.clone(), new_user.password_hash, Utc::now()).unwrap();
+            let user = User::new(
+                id,
+                new_user.username.clone(),
+                new_user.password_hash,
+                Utc::now(),
+            )
+                .unwrap();
             username_idx.insert(user.username.clone(), user.id);
             users.insert(id, user.clone());
             Ok(user)
@@ -393,9 +457,7 @@ mod tests {
         let refresh_token = login_tokens.refresh_token.expect("refresh token");
 
         let refreshed = service
-            .refresh(RefreshRequest {
-                refresh_token,
-            })
+            .refresh(RefreshRequest { refresh_token })
             .await
             .unwrap();
 
@@ -500,7 +562,7 @@ mod tests {
             AppError::BusinessError(BusinessError::Validation(fields)) => {
                 assert!(!fields.is_empty());
             }
-            other => panic!("expected validation error, got {:?}", other),
+            other => panic!("expected validation error, got {:?}", other)
         }
     }
 }

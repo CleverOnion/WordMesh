@@ -111,7 +111,13 @@ mod tests {
     #[test]
     fn access_token_round_trip() {
         let config = test_config();
-        let token = generate_access_token(&config, "user-1", Some("scope".into()), Some("req-1".into())).unwrap();
+        let token = generate_access_token(
+            &config,
+            "user-1",
+            Some("scope".into()),
+            Some("req-1".into()),
+        )
+        .unwrap();
         let claims = validate_token(&config, &token).unwrap();
         assert_eq!(claims.sub, "user-1");
         assert!(claims.exp > claims.iat);

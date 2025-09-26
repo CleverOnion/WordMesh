@@ -66,9 +66,7 @@ impl UserRepository for PgUserRepository {
         .fetch_optional(&self.pool)
         .await?;
 
-        maybe_row
-            .map(map_row_to_user)
-            .transpose()
+        maybe_row.map(map_row_to_user).transpose()
     }
 
     async fn find_by_id(&self, user_id: i64) -> Result<Option<User>, RepositoryError> {
@@ -83,9 +81,7 @@ impl UserRepository for PgUserRepository {
         .fetch_optional(&self.pool)
         .await?;
 
-        maybe_row
-            .map(map_row_to_user)
-            .transpose()
+        maybe_row.map(map_row_to_user).transpose()
     }
 }
 

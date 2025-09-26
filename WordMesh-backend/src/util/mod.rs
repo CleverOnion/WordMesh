@@ -1,6 +1,6 @@
 pub mod error;
-pub mod response;
 pub mod password;
+pub mod response;
 pub mod token;
 
 pub use error::AppError;

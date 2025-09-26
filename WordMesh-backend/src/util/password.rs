@@ -1,6 +1,6 @@
 //! Password hashing and verification utilities.
 
-use bcrypt::{hash, verify, DEFAULT_COST};
+use bcrypt::{DEFAULT_COST, hash, verify};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -48,7 +48,13 @@ mod tests {
     #[test]
     fn verify_password_empty_inputs() {
         let hashed = hash_password("secret", 10).expect("hash");
-        assert!(matches!(verify_password("", &hashed), Err(PasswordError::Empty)));
-        assert!(matches!(verify_password("secret", ""), Err(PasswordError::Empty)));
+        assert!(matches!(
+            verify_password("", &hashed),
+            Err(PasswordError::Empty)
+        ));
+        assert!(matches!(
+            verify_password("secret", ""),
+            Err(PasswordError::Empty)
+        ));
     }
 }

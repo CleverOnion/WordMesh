@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 pub mod application;
 pub mod config;
 pub mod controller;

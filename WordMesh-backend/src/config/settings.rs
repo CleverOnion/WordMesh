@@ -264,8 +264,14 @@ impl AuthJwtSettings {
                 }
             }
             "RS256" => {
-                if self.private_key.as_ref().map_or(true, |s| s.trim().is_empty())
-                    || self.public_key.as_ref().map_or(true, |s| s.trim().is_empty())
+                if self
+                    .private_key
+                    .as_ref()
+                    .map_or(true, |s| s.trim().is_empty())
+                    || self
+                        .public_key
+                        .as_ref()
+                        .map_or(true, |s| s.trim().is_empty())
                 {
                     return Err(config::ConfigError::Message(
                         "auth.jwt.private_key and auth.jwt.public_key are required when using RS256".into(),

@@ -1,0 +1,192 @@
+openapi: 3.0.3
+info:
+  title: WordMesh Backend API
+  version: 0.1.0
+  description: |
+    API for WordMesh backend. All endpoints return HTTP 200 with a unified envelope {code, message, data, traceId, timestamp}.
+servers:
+  - url: http://127.0.0.1:8080
+    description: Local development
+tags:
+  - name: Health
+  - name: Auth
+paths:
+  /api/v1/health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        "200":
+          description: Unified response with health data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponseHealth"
+  /api/v1/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "200":
+          description: Unified response with profile data or business error
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/ApiResponseProfile"
+                  - $ref: "#/components/schemas/ApiErrorResponse"
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login and obtain tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Unified response with tokens or business error
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/ApiResponseAuthTokens"
+                  - $ref: "#/components/schemas/ApiErrorResponse"
+  /api/v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: Unified response with tokens or business error
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/ApiResponseAuthTokens"
+                  - $ref: "#/components/schemas/ApiErrorResponse"
+  /api/v1/auth/profile:
+    get:
+      tags: [Auth]
+      summary: Get current user profile
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Unified response with profile data or business error
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/ApiResponseProfile"
+                  - $ref: "#/components/schemas/ApiErrorResponse"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ApiResponseEnvelope:
+      type: object
+      properties:
+        code: { type: integer, example: 2000 }
+        message: { type: string, example: OK }
+        traceId: { type: string }
+        timestamp: { type: integer, format: int64 }
+    HealthStatus:
+      type: object
+      properties:
+        status: { type: string, example: healthy }
+        service: { type: string, example: WordMesh Backend }
+        version: { type: string, example: 0.1.0 }
+    ApiResponseHealth:
+      allOf:
+        - $ref: "#/components/schemas/ApiResponseEnvelope"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/HealthStatus"
+    RegisterRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          {
+            type: string,
+            minLength: 3,
+            maxLength: 32,
+            pattern: "^[A-Za-z0-9_]+$",
+          }
+        password: { type: string, minLength: 8 }
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string }
+        password: { type: string }
+    RefreshRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token: { type: string, minLength: 10 }
+    ProfileResponse:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        username: { type: string }
+        created_at: { type: string, format: date-time }
+    AuthTokens:
+      type: object
+      properties:
+        access_token: { type: string }
+        refresh_token: { type: string, nullable: true }
+    ValidationField:
+      type: object
+      properties:
+        field: { type: string }
+        message: { type: string }
+    ApiResponseProfile:
+      allOf:
+        - $ref: "#/components/schemas/ApiResponseEnvelope"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/ProfileResponse"
+    ApiResponseAuthTokens:
+      allOf:
+        - $ref: "#/components/schemas/ApiResponseEnvelope"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/AuthTokens"
+    ApiErrorResponse:
+      allOf:
+        - $ref: "#/components/schemas/ApiResponseEnvelope"
+        - type: object
+          properties:
+            code:
+              type: integer
+              examples: [4000, 4001, 4010, 4011, 4012, 4013, 4014, 5000]
+            message:
+              type: string
+            data:
+              oneOf:
+                - type: "null"
+                - type: array
+                  items:
+                    $ref: "#/components/schemas/ValidationField"

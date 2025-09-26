@@ -1,4 +1,4 @@
-use actix_web::{web, HttpResponse};
+use actix_web::{HttpResponse, web};
 use std::sync::Arc;
 
 use crate::dto::auth::{LoginRequest, RefreshRequest, RegisterRequest};
@@ -80,7 +80,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use actix_web::{test, App};
+    use actix_web::{App, test};
     use async_trait::async_trait;
     use chrono::Utc;
     use serde_json::json;
@@ -104,12 +104,20 @@ mod tests {
             let mut users = self.users.write().await;
             let mut username_idx = self.username_index.write().await;
             if username_idx.contains_key(&new_user.username) {
-                return Err(RepositoryError::Domain(crate::domain::UserDomainError::InvalidUsername(
-                    crate::domain::UsernameValidationError::InvalidFormat,
-                )));
+                return Err(RepositoryError::Domain(
+                    crate::domain::UserDomainError::InvalidUsername(
+                        crate::domain::UsernameValidationError::InvalidFormat,
+                    ),
+                ));
             }
             let id = (users.len() + 1) as i64;
-            let user = User::new(id, new_user.username.clone(), new_user.password_hash, Utc::now()).unwrap();
+            let user = User::new(
+                id,
+                new_user.username.clone(),
+                new_user.password_hash,
+                Utc::now(),
+            )
+            .unwrap();
             username_idx.insert(user.username.clone(), user.id);
             users.insert(id, user.clone());
             Ok(user)
@@ -156,7 +164,10 @@ mod tests {
     #[actix_rt::test]
     async fn register_endpoint_returns_profile() {
         let controller = web::Data::new(AuthController::new(service()));
-        let app = test::init_service(App::new().configure(|cfg| AuthController::configure(cfg, controller.clone()))).await;
+        let app = test::init_service(
+            App::new().configure(|cfg| AuthController::configure(cfg, controller.clone())),
+        )
+        .await;
 
         let req = test::TestRequest::post()
             .uri("/auth/register")
@@ -172,7 +183,10 @@ mod tests {
     #[actix_rt::test]
     async fn login_endpoint_returns_tokens() {
         let controller = web::Data::new(AuthController::new(service()));
-        let app = test::init_service(App::new().configure(|cfg| AuthController::configure(cfg, controller.clone()))).await;
+        let app = test::init_service(
+            App::new().configure(|cfg| AuthController::configure(cfg, controller.clone())),
+        )
+        .await;
 
         // register first
         let register = test::TestRequest::post()
@@ -195,7 +209,10 @@ mod tests {
     #[actix_rt::test]
     async fn profile_requires_identity() {
         let controller = web::Data::new(AuthController::new(service()));
-        let app = test::init_service(App::new().configure(|cfg| AuthController::configure(cfg, controller.clone()))).await;
+        let app = test::init_service(
+            App::new().configure(|cfg| AuthController::configure(cfg, controller.clone())),
+        )
+        .await;
 
         let register = test::TestRequest::post()
             .uri("/auth/register")
