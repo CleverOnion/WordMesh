@@ -3,23 +3,23 @@ use validator::Validate;
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct RegisterRequest {
-    #[validate(length(min = 3, max = 32), custom(function = "crate::domain::user::validate_username_format"))]
+    #[validate(length(min = 3, max = 32, message = "用户名长度必须在 3 到 32 之间"), custom(function = "crate::domain::user::validate_username_format"))]
     pub username: String,
-    #[validate(length(min = 8))]
+    #[validate(length(min = 8, message = "密码长度至少 8 位"))]
     pub password: String,
 }
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct LoginRequest {
-    #[validate(length(min = 3, max = 32), custom(function = "crate::domain::user::validate_username_format"))]
+    #[validate(length(min = 3, max = 32, message = "用户名长度必须在 3 到 32 之间"), custom(function = "crate::domain::user::validate_username_format"))]
     pub username: String,
-    #[validate(length(min = 8))]
+    #[validate(length(min = 8, message = "密码长度至少 8 位"))]
     pub password: String,
 }
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct RefreshRequest {
-    #[validate(length(min = 10))]
+    #[validate(length(min = 10, message = "refresh_token 长度不合法"))]
     pub refresh_token: String,
 }
 

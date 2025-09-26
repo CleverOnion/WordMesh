@@ -4,9 +4,8 @@ use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey};
 use thiserror::Error;
 use validator::{Validate, ValidationErrors};
 
-use crate::config::settings::{AuthJwtSettings, AuthPasswordSettings, AuthSettings};
-use crate::domain::user::USERNAME_REGEX;
-use crate::domain::{HashedPassword, User};
+use crate::config::settings::{AuthJwtSettings, AuthSettings};
+use crate::domain::HashedPassword;
 use crate::dto::auth::{AuthTokens, LoginRequest, ProfileResponse, RefreshRequest, RegisterRequest};
 use crate::repository::user::{NewUser, RepositoryError, UserRepository};
 use crate::util::error::{AuthFlowError, BusinessError, InternalError, ValidationField};
@@ -278,13 +277,13 @@ fn map_token_error(err: TokenError) -> AppError {
 mod tests {
     use super::*;
     use crate::config::settings::{AuthJwtSettings, AuthPasswordSettings, AuthSettings};
-    use crate::domain::user::USERNAME_REGEX;
-    use crate::domain::{HashedPassword, User};
-    use crate::repository::user::{NewUser, UserRepository};
+    use crate::domain::User;
+    use crate::util::error::{AppError, BusinessError, InternalError};
+    use crate::util::token::TokenConfig;
     use async_trait::async_trait;
+    use chrono::Utc;
     use std::collections::HashMap;
     use tokio::sync::RwLock;
-    use chrono::Utc;
 
     #[derive(Default, Clone)]
     struct InMemoryUserRepository {
@@ -414,5 +413,90 @@ mod tests {
 
         let fetched = service.profile(profile.id).await.unwrap();
         assert_eq!(fetched.username, "profile_user");
+    }
+
+    #[tokio::test]
+    async fn login_with_wrong_password_fails() {
+        let repo = InMemoryUserRepository::default();
+        let service = service(repo.clone());
+
+        service
+            .register(RegisterRequest {
+                username: "user_wrong".into(),
+                password: "password123".into(),
+            })
+            .await
+            .unwrap();
+
+        let err = service
+            .login(LoginRequest {
+                username: "user_wrong".into(),
+                password: "wrongpass".into(),
+            })
+            .await
+            .unwrap_err();
+
+        match err {
+            AppError::BusinessError(BusinessError::Auth(AuthFlowError::InvalidCredentials)) => {}
+            other => panic!("unexpected error: {:?}", other),
+        }
+    }
+
+    #[tokio::test]
+    async fn refresh_disabled_returns_error() {
+        let mut settings = default_settings();
+        settings.jwt.refresh_ttl_secs = 0;
+        let repo = InMemoryUserRepository::default();
+        let service = AuthService::new(repo.clone(), &settings, &settings.jwt).unwrap();
+
+        service
+            .register(RegisterRequest {
+                username: "refresh_disabled".into(),
+                password: "password123".into(),
+            })
+            .await
+            .unwrap();
+
+        let login_tokens = service
+            .login(LoginRequest {
+                username: "refresh_disabled".into(),
+                password: "password123".into(),
+            })
+            .await
+            .unwrap();
+
+        assert!(login_tokens.refresh_token.is_none());
+
+        let err = service
+            .refresh(RefreshRequest {
+                refresh_token: "0000000000".into(),
+            })
+            .await
+            .unwrap_err();
+        match err {
+            AppError::BusinessError(BusinessError::Auth(AuthFlowError::TokenInvalid)) => {}
+            other => panic!("unexpected error: {:?}", other),
+        }
+    }
+
+    #[tokio::test]
+    async fn register_validation_error() {
+        let repo = InMemoryUserRepository::default();
+        let service = service(repo.clone());
+
+        let err = service
+            .register(RegisterRequest {
+                username: "ab".into(),
+                password: "pwd".into(),
+            })
+            .await
+            .unwrap_err();
+
+        match err {
+            AppError::BusinessError(BusinessError::Validation(fields)) => {
+                assert!(!fields.is_empty());
+            }
+            other => panic!("expected validation error, got {:?}", other),
+        }
     }
 }
