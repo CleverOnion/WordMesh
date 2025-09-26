@@ -10,7 +10,7 @@ max_connections = 5
 connect_timeout_seconds = 5
 
 [neo4j]
-uri = "bolt://localhost:7687"
+uri = "bolt://localhost:17687"
 username = "neo4j"
 password = "wordmesh123"
 

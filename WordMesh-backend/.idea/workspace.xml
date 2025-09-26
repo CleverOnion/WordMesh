@@ -12,8 +12,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="575917ed-07c7-4294-93d9-8d1d788b12b2" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/tests/auth_integration.rs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/repository_user_tests.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/default.toml" beforeDir="false" afterPath="$PROJECT_DIR$/config/default.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/development.toml" beforeDir="false" afterPath="$PROJECT_DIR$/config/development.toml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -98,7 +99,7 @@
       <workItem from="1758768091942" duration="4484000" />
       <workItem from="1758798377254" duration="2041000" />
       <workItem from="1758801555569" duration="2951000" />
-      <workItem from="1758875440264" duration="1848000" />
+      <workItem from="1758875440264" duration="3055000" />
     </task>
     <servers />
   </component>
