@@ -35,3 +35,43 @@ pub struct ProfileResponse {
     pub username: String,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn register_request_validates() {
+        let req = RegisterRequest {
+            username: "valid_user".into(),
+            password: "password123".into(),
+        };
+        assert!(req.validate().is_ok());
+    }
+
+    #[test]
+    fn register_request_rejects_short_username() {
+        let req = RegisterRequest {
+            username: "ab".into(),
+            password: "password123".into(),
+        };
+        assert!(req.validate().is_err());
+    }
+
+    #[test]
+    fn login_request_rejects_invalid_characters() {
+        let req = LoginRequest {
+            username: "invalid-name".into(),
+            password: "password123".into(),
+        };
+        assert!(req.validate().is_err());
+    }
+
+    #[test]
+    fn refresh_request_requires_min_length() {
+        let req = RefreshRequest {
+            refresh_token: "short".into(),
+        };
+        assert!(req.validate().is_err());
+    }
+}

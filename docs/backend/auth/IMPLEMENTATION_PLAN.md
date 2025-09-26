@@ -51,14 +51,14 @@
 
 ## 4. 接口与中间件
 
-- [ ] DTO 与校验
-  - [ ] 在 `dto` 模块添加请求/响应结构体
-  - [ ] 使用 `validator` 标注字段规则
-  - [ ] 为 DTO 编写边界测试（可选）
-- [ ] 控制器
-  - [ ] 在 `controller` 编写 `/register`、`/login`、`/refresh`、`/profile` handler
-  - [ ] 封装统一响应与错误处理
-  - [ ] 将 `AuthService` 注入 Actix 应用状态
+- [x] DTO 与校验
+  - [x] 在 `dto` 模块添加请求/响应结构体
+  - [x] 使用 `validator` 标注字段规则
+  - [x] 为 DTO 编写边界测试（可选）
+- [x] 控制器
+  - [x] 在 `controller` 编写 `/register`、`/login`、`/refresh`、`/profile` handler
+  - [x] 封装统一响应与错误处理
+  - [x] 将 `AuthService` 注入 Actix 应用状态
 - [ ] 中间件
   - [ ] 实现 `AuthGuard`（解析 Bearer Token）
   - [ ] 将用户信息放入请求扩展
