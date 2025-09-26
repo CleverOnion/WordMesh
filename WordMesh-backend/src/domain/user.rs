@@ -4,7 +4,7 @@ use regex::Regex;
 use thiserror::Error;
 use validator::{Validate, ValidationError};
 
-static USERNAME_REGEX: Lazy<Regex> = Lazy::new(|| {
+pub static USERNAME_REGEX: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"^[A-Za-z0-9_]{3,32}$").expect("username regex must compile")
 });
 
@@ -95,7 +95,7 @@ fn validate_username(username: String) -> Result<String, UsernameValidationError
     Ok(username)
 }
 
-fn validate_username_format(username: &str) -> Result<(), ValidationError> {
+pub fn validate_username_format(username: &str) -> Result<(), ValidationError> {
     if !USERNAME_REGEX.is_match(username) {
         return Err(ValidationError::new("username_format"));
     }

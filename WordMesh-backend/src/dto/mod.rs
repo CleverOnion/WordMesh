@@ -1,1 +1,1 @@
-// Data Transfer Objects will be implemented here
+pub mod auth;
