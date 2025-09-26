@@ -12,22 +12,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="575917ed-07c7-4294-93d9-8d1d788b12b2" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.lock" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/application/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/application/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/config/settings.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/config/settings.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/controller/auth.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/controller/auth.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/domain/user.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/domain/user.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/dto/auth.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/dto/auth.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/middleware/auth_guard.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/middleware/auth_guard.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/repository/user.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/repository/user.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/service/auth.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/service/auth.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/util/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/util/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/util/password.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/util/password.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/util/token.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/util/token.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../docs/backend/auth/IMPLEMENTATION_PLAN.md" beforeDir="false" afterPath="$PROJECT_DIR$/../docs/backend/auth/IMPLEMENTATION_PLAN.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/auth_integration.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/repository_user_tests.rs" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -112,7 +98,7 @@
       <workItem from="1758768091942" duration="4484000" />
       <workItem from="1758798377254" duration="2041000" />
       <workItem from="1758801555569" duration="2951000" />
-      <workItem from="1758875440264" duration="941000" />
+      <workItem from="1758875440264" duration="1848000" />
     </task>
     <servers />
   </component>
