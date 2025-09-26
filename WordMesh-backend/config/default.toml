@@ -2,8 +2,8 @@
 # 所有环境的基础配置，会被具体环境配置覆盖
 
 [database]
-username = "wordmesh"
-password = "wordmesh123"
+username = "postgres"
+password = "Shicong666"
 host = "localhost"
 port = 5432
 database_name = "wordmesh"

@@ -13,25 +13,25 @@
   - [x] 在 `config/settings.rs` 添加 `AuthSettings`
   - [x] 为 `Settings::validate()` 增加认证配置校验
   - [x] 更新各环境配置文件的占位键值
-- [ ] 错误体系统一
+- [x] 错误体系统一
   - [x] 扩展 `util::error`，增加 `BusinessError::Auth`
   - [x] 定义 `AuthFlowError` 及业务码映射
   - [x] 为错误新增单元测试（验证 ResponseError 输出）
 
 ## 2. 数据访问与领域模型
 
-- [ ] 领域建模
-  - [ ] 定义 `domain::user::User` 聚合结构
-  - [ ] 编写 `HashedPassword` 值对象（含校验规则）
-  - [ ] 补充必要的构造/验证逻辑
-- [ ] 仓储接口
-  - [ ] 在 `repository::user_repository` 定义 trait 接口
-  - [ ] 实现 SQLx 版仓储：按用户名查询、创建用户、查询资料
-  - [ ] 补充错误转换与日志
-- [ ] 仓储测试
-  - [ ] 使用 `sqlx::test` 编写成功路径测试
-  - [ ] 编写重复用户名等失败路径测试
-  - [ ] 根据需要准备测试数据清理流程
+- [x] 领域建模
+  - [x] 定义 `domain::user::User` 聚合结构
+  - [x] 编写 `HashedPassword` 值对象（含校验规则）
+  - [x] 补充必要的构造/验证逻辑
+- [x] 仓储接口
+  - [x] 在 `repository::user_repository` 定义 trait 接口
+  - [x] 实现 SQLx 版仓储：按用户名查询、创建用户、查询资料
+  - [x] 补充错误转换与日志
+- [x] 仓储测试
+  - [x] 使用 `sqlx::test` 编写成功路径测试
+  - [x] 编写重复用户名等失败路径测试
+  - [x] 根据需要准备测试数据清理流程
 
 ## 3. 服务层实现
 

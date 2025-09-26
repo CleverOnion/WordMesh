@@ -1,5 +1,5 @@
 [package]
-name = "Wordmesh-backend"
+name = "wordmesh-backend"
 version = "0.1.0"
 edition = "2024"
 
@@ -10,7 +10,7 @@ actix-cors = "0.6"
 actix-rt = "2.8"
 
 # Database drivers
-sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid", "json"] }
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid", "json", "macros"] }
 neo4rs = "0.9.0-rc.8"
 
 # Serialization
@@ -42,6 +42,10 @@ chrono = { version = "0.4", features = ["serde"] }
 
 # Validation
 validator = { version = "0.18", features = ["derive"] }
+regex = "1.10"
+lazy_static = "1.4"
+once_cell = "1.19"
+async-trait = "0.1"
 
 # HTTP client (for future external API calls)
 reqwest = { version = "0.11", features = ["json"] }

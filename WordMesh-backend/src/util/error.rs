@@ -180,8 +180,11 @@ mod tests {
 
         let body = to_bytes(response.into_body()).await.unwrap();
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
-        assert_eq!(json["error"]["code"], 4011);
-        assert_eq!(json["error"]["message"], "Invalid credentials");
+        assert_eq!(json["code"], 4011);
+        assert_eq!(json["message"], "Invalid credentials");
+        assert!(json["data"].is_null());
+        assert!(json["traceId"].is_string());
+        assert!(json["timestamp"].is_number());
     }
 
     #[actix_rt::test]
@@ -195,10 +198,11 @@ mod tests {
         let body = to_bytes(response.into_body()).await.unwrap();
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
 
-        assert_eq!(json["error"]["code"], 4001);
-        assert!(json["data"].is_array());
-        assert_eq!(json["data"][0]["field"], "username");
-        assert_eq!(json["data"][0]["message"], "required");
-        assert!(json["meta"]["trace_id"].is_string());
+        assert_eq!(json["code"], 4001);
+        let data = json["data"].as_array().expect("data array");
+        assert_eq!(data[0]["field"], "username");
+        assert_eq!(data[0]["message"], "required");
+        assert!(json["traceId"].is_string());
+        assert!(json["timestamp"].is_number());
     }
 }

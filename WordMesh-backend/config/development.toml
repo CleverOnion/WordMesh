@@ -1,11 +1,11 @@
 # WordMesh Backend - 开发环境配置
 
 [database]
-username = "wordmesh"
-password = "wordmesh123"
+username = "postgres"
+password = "Shicong666"
 host = "localhost"
 port = 5432
-database_name = "wordmesh_dev"
+database_name = "wordmesh"
 max_connections = 5
 connect_timeout_seconds = 5
 

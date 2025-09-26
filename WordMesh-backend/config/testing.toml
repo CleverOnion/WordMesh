@@ -1,11 +1,13 @@
 # WordMesh Backend - 测试环境配置
 
 [database]
-username = "wordmesh_test"
-password = "test123"
+username = "postgres"
+password = "Shicong666"
 host = "localhost"
-port = 5433
-database_name = "wordmesh_test"
+port = 5432
+database_name = "wordmesh"
+max_connections = 5
+connect_timeout_seconds = 5
 
 [neo4j]
 uri = "bolt://localhost:7688"
