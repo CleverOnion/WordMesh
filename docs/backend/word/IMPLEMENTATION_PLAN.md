@@ -91,11 +91,11 @@
 
 ## 4. 接口与中间件
 
-- [ ] DTO 与校验（validator）
-  - [ ] Word：加入、搜索、UserWord 详情
-  - [ ] Sense：新增/更新/删除
-  - [ ] Associations：创建/列表/删除（词-词、义 → 词）
-  - [ ] 统一分页参数（limit<=100，offset<=10000）与字段级错误返回
+- [x] DTO 与校验（validator）
+  - [x] Word：加入、搜索、UserWord 详情
+  - [x] Sense：新增/更新/删除
+  - [x] Associations：创建/列表/删除（词-词、义 → 词）
+  - [x] 统一分页参数（limit<=100，offset<=10000）与字段级错误返回
 - [ ] 控制器与路由
   - [ ] `/api/v1/words/my`（POST）加入我的词网
   - [ ] `/api/v1/words/my/{user_word_id}/senses`（POST）新增个人义项
@@ -152,13 +152,4 @@
 ## 8. 文档与交付
 
 - [ ] API 文档：更新 `docs/api.md`、`docs/openapi.yaml`（新增端点与错误码）
-- [ ] 运行手册：`docs/runbook.md` 增加 PG/Neo4j 初始化、排错与数据清理指引
-- [ ] 交付说明：`docs/DELIVERY.md` 汇总变更、测试结果与风险
-
-## 9. 验收标准（Checklist）
-
-- [ ] 规范化键生成一致；同词去重生效；加入词网幂等
-- [ ] 同词项下义项文本不可重复；主义项唯一；删除义项级联清理义 → 词关联
-- [ ] 词-词/义 → 词关联创建去重、自链接禁止；创建义 → 词可自动将目标词加入我的词网
-- [ ] 搜索支持词项/义项、前缀/包含、分页；默认 20，最大 100
-- [ ] 统一响应/错误码正确；tracing/metrics 可见；CI 全绿
+- [ ] 运行手册：`docs/runbook.md`
