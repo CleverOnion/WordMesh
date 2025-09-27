@@ -77,17 +77,17 @@
   - [x] `remove_from_my_network(user_word_id)`
     - [x] 先删该词项下的 `user_senses`（触发后续图清理）→ 再删 `user_words`
   - [x] `search_in_my_network(q,scope,limit,offset)`：词项/义项维度、前缀/包含、分页（默认 20，最大 100）
-- [ ] SenseService
-  - [ ] `add_sense(user_word_id,text,is_primary?)`：同词项下文本唯一；必要时清空旧主义项
-  - [ ] `update_sense(sense_id,text?,is_primary?,sort_order?)`：确保唯一与主义项唯一
-  - [ ] `remove_sense(sense_id)`：PG 删除后触发 Neo4j 清理该 sense 的 SENSE_TO_WORD
-- [ ] AssocService（Neo4j）
-  - [ ] `create_word_link(word_id_a,word_id_b,kind)`：端点排序 + MERGE；禁止自链接；对称去重
-  - [ ] `create_sense_word_link(sense_id,target_word_id,kind)`：目标词 ≠ 源词；目标词不在词网则 UPSERT `user_words`；MERGE 去重
-  - [ ] `list_links_by_word(word_id,kind?,limit,offset)`；`list_links_by_sense(sense_id,kind?,limit,offset)`
-  - [ ] `delete_link(...)`：依据端点+属性或关系 id 删除
-- [ ] 服务层测试
-  - [ ] 覆盖正常与错误路径：重复加入、义项重复、主义项冲突、自链接、上限、目标词自动加入失败等
+- [x] SenseService
+  - [x] `add_sense(user_word_id,text,is_primary?)`：同词项下文本唯一；必要时清空旧主义项
+  - [x] `update_sense(sense_id,text?,is_primary?,sort_order?)`：确保唯一与主义项唯一
+  - [x] `remove_sense(sense_id)`：PG 删除后触发 Neo4j 清理该 sense 的 SENSE_TO_WORD
+- [x] AssocService（Neo4j）
+  - [x] `create_word_link(word_id_a,word_id_b,kind)`：端点排序 + MERGE；禁止自链接；对称去重
+  - [x] `create_sense_word_link(sense_id,target_word_id,kind)`：目标词 ≠ 源词；目标词不在词网则 UPSERT `user_words`；MERGE 去重
+  - [x] `list_links_by_word(word_id,kind?,limit,offset)`；`list_links_by_sense(sense_id,kind?,limit,offset)`
+  - [x] `delete_link(...)`：依据端点+属性或关系 id 删除
+- [x] 服务层测试
+  - [x] 覆盖正常与错误路径：重复加入、义项重复、主义项冲突、自链接、上限、目标词自动加入失败等
 
 ## 4. 接口与中间件
 

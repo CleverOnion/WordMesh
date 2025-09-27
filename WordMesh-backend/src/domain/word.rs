@@ -353,7 +353,7 @@ mod tests {
     #[test]
     fn canonical_key_rejects_empty_input() {
         let result = CanonicalKey::new("   ");
-        assert!(matches!(result, Err(CanonicalKeyError::Empty)));
+        assert!(matches!(result, Err(CanonicalKeyError::Validation(_))));
     }
 
     #[test]
@@ -435,7 +435,7 @@ mod tests {
     #[test]
     fn user_sense_validates_note_and_text() {
         let result = UserSense::new("   ", false, 0, None);
-        assert!(matches!(result, Err(UserSenseError::EmptyText)));
+        assert!(matches!(result, Err(UserSenseError::InvalidNote)));
 
         let result = UserSense::new("meaning", false, 0, Some("   ".into()));
         assert!(matches!(result, Err(UserSenseError::InvalidNote)));

@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use tracing::instrument;
 
-use crate::domain::word::{CanonicalKey, CanonicalKeyError, UserSenseError, UserWordError, UserSense};
+use crate::domain::word::{
+    CanonicalKey, CanonicalKeyError, UserSense, UserSenseError, UserWordError,
+};
 use crate::repository::graph::{GraphRepository, GraphRepositoryError, WordLinkFilter};
 use crate::repository::word::{
     NewUserSense, SearchParams, SearchScope, UpsertUserWord, UserWordAggregate, WordRepository,
@@ -221,7 +223,10 @@ where
     }
 }
 
-fn build_new_sense_payload(user_word_id: i64, sense: SenseInput) -> Result<NewUserSense, AppError> {
+pub(crate) fn build_new_sense_payload(
+    user_word_id: i64,
+    sense: SenseInput,
+) -> Result<NewUserSense, AppError> {
     let SenseInput {
         text,
         is_primary,
@@ -241,14 +246,14 @@ fn build_new_sense_payload(user_word_id: i64, sense: SenseInput) -> Result<NewUs
     })
 }
 
-fn validation_error(field: &str, message: impl Into<String>) -> AppError {
+pub(crate) fn validation_error(field: &str, message: impl Into<String>) -> AppError {
     AppError::from(BusinessError::Validation(vec![ValidationField {
         field: field.into(),
         message: message.into(),
     }]))
 }
 
-fn map_validation_error(field: &str, error: ValidationError) -> AppError {
+pub(crate) fn map_validation_error(field: &str, error: ValidationError) -> AppError {
     match error {
         ValidationError::Blank => validation_error(field, "不能为空"),
         ValidationError::TextTooLong(len) => validation_error(
@@ -266,14 +271,14 @@ fn map_validation_error(field: &str, error: ValidationError) -> AppError {
     }
 }
 
-fn map_canonical_error(err: CanonicalKeyError) -> AppError {
+pub(crate) fn map_canonical_error(err: CanonicalKeyError) -> AppError {
     match err {
         CanonicalKeyError::Empty => validation_error("text", "文本不能为空"),
         CanonicalKeyError::Validation(_) => validation_error("text", "文本不合法"),
     }
 }
 
-fn map_user_word_error(err: UserWordError) -> AppError {
+pub(crate) fn map_user_word_error(err: UserWordError) -> AppError {
     match err {
         UserWordError::TagLimitExceeded(count) => {
             validation_error("tags", format!("标签数量不能超过 {MAX_TAGS}，当前 {count}"))
@@ -297,7 +302,7 @@ fn map_user_word_error(err: UserWordError) -> AppError {
     }
 }
 
-fn map_user_sense_error(err: UserSenseError) -> AppError {
+pub(crate) fn map_user_sense_error(err: UserSenseError) -> AppError {
     match err {
         UserSenseError::EmptyText => validation_error("sense.text", "义项文本不能为空"),
         UserSenseError::TextTooLong(len) => validation_error(
@@ -312,7 +317,7 @@ fn map_user_sense_error(err: UserSenseError) -> AppError {
     }
 }
 
-fn map_word_error(err: WordRepositoryError) -> AppError {
+pub(crate) fn map_word_error(err: WordRepositoryError) -> AppError {
     match err {
         WordRepositoryError::UserWord(inner) => map_user_word_error(inner),
         WordRepositoryError::UserSense(inner) => map_user_sense_error(inner),
@@ -323,7 +328,7 @@ fn map_word_error(err: WordRepositoryError) -> AppError {
     }
 }
 
-fn map_graph_error(err: GraphRepositoryError) -> AppError {
+pub(crate) fn map_graph_error(err: GraphRepositoryError) -> AppError {
     match err {
         GraphRepositoryError::Business(BusinessError::Link(link_err)) => {
             AppError::from(BusinessError::Link(link_err))
