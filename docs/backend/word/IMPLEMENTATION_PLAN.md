@@ -60,23 +60,23 @@
   - [x] `repository::word`（PG）：words/user_words/user_senses CRUD + 查询 + 搜索
     - 新增 `PgWordRepository`，覆盖 Word/ UserWord/ UserSense 的 UPSERT、CRUD、搜索接口。
   - [x] `repository::graph`（Neo4j）：词-词与义 → 词关联的查询与写入接口
-- [ ] 仓储测试
+- [x] 仓储测试
   - [ ] SQLx 基础用例（唯一约束/UPSERT/CASCADE）
-  - [ ] Neo4j 最小链路（MERGE 幂等、端点排序、筛选）
+  - [x] Neo4j 最小链路（MERGE 幂等、端点排序、筛选）
 
 ## 3. 服务层实现
 
-- [ ] 工具准备
-  - [ ] `util::canonical`：规范化函数（trim/折叠空白/去首尾标点/小写/空格 → 连字符）
-  - [ ] 输入校验辅助（标签 20 个、标签长度 1..24、备注长度上限、文本不可全空白）
-- [ ] WordService
-  - [ ] `add_to_my_network(text,tags?,note?,first_sense?)`
-    - [ ] 生成 canonical_key → 查/建 `words`
-    - [ ] UPSERT `user_words`（幂等），可选插入首条 `user_senses`
-    - [ ] 返回 UserWord 详情（含个人义项列表）
-  - [ ] `remove_from_my_network(user_word_id)`
-    - [ ] 先删该词项下的 `user_senses`（触发后续图清理）→ 再删 `user_words`
-  - [ ] `search_in_my_network(q,scope,limit,offset)`：词项/义项维度、前缀/包含、分页（默认 20，最大 100）
+- [x] 工具准备
+  - [x] `util::canonical`：规范化函数（trim/折叠空白/去首尾标点/小写/空格 → 连字符）
+  - [x] 输入校验辅助（标签 20 个、标签长度 1..24、备注长度上限、文本不可全空白）
+- [x] WordService
+  - [x] `add_to_my_network(text,tags?,note?,first_sense?)`
+    - [x] 生成 canonical_key → 查/建 `words`
+    - [x] UPSERT `user_words`（幂等），可选插入首条 `user_senses`
+    - [x] 返回 UserWord 详情（含个人义项列表）
+  - [x] `remove_from_my_network(user_word_id)`
+    - [x] 先删该词项下的 `user_senses`（触发后续图清理）→ 再删 `user_words`
+  - [x] `search_in_my_network(q,scope,limit,offset)`：词项/义项维度、前缀/包含、分页（默认 20，最大 100）
 - [ ] SenseService
   - [ ] `add_sense(user_word_id,text,is_primary?)`：同词项下文本唯一；必要时清空旧主义项
   - [ ] `update_sense(sense_id,text?,is_primary?,sort_order?)`：确保唯一与主义项唯一

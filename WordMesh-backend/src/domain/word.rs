@@ -1,18 +1,12 @@
 use chrono::{DateTime, Utc};
-use once_cell::sync::Lazy;
-use regex::Regex;
-use std::collections::HashSet;
 use std::fmt::{Display, Formatter};
 use thiserror::Error;
 
-const MAX_TAGS: usize = 20;
-const MAX_NOTE_LENGTH: usize = 512;
-const MAX_SENSE_TEXT_LENGTH: usize = 512;
-const MAX_SENSE_NOTE_LENGTH: usize = 512;
-
-static MULTI_WHITESPACE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\\s+").expect("canonical key whitespace regex must compile"));
-static TAG_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[A-Za-z0-9_-]{1,24}$").unwrap());
+use crate::util::canonical::{CanonicalError, canonicalize};
+use crate::util::validation::{
+    MAX_NOTE_LENGTH, MAX_SENSE_NOTE_LENGTH, MAX_SENSE_TEXT_LENGTH, MAX_TAGS, ValidationError,
+    normalize_tags, validate_non_empty_text, validate_note,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CanonicalKey(String);
@@ -21,11 +15,13 @@ pub struct CanonicalKey(String);
 pub enum CanonicalKeyError {
     #[error("canonical key text cannot be empty after normalization")]
     Empty,
+    #[error(transparent)]
+    Validation(#[from] CanonicalError),
 }
 
 impl CanonicalKey {
     pub fn new(text: impl AsRef<str>) -> Result<Self, CanonicalKeyError> {
-        let normalized = normalize_canonical_text(text.as_ref());
+        let normalized = canonicalize(text.as_ref())?;
         if normalized.is_empty() {
             return Err(CanonicalKeyError::Empty);
         }
@@ -44,37 +40,7 @@ impl Display for CanonicalKey {
 }
 
 fn normalize_canonical_text(input: &str) -> String {
-    let trimmed = input.trim();
-    if trimmed.is_empty() {
-        return String::new();
-    }
-
-    let collapsed = MULTI_WHITESPACE.replace_all(trimmed, " ");
-    let stripped = collapsed
-        .trim_matches(|c: char| c.is_ascii_punctuation())
-        .trim();
-    if stripped.is_empty() {
-        return String::new();
-    }
-
-    let lowercase = stripped.to_lowercase();
-    let replaced = lowercase.replace(' ', "-");
-    let mut cleaned = String::with_capacity(replaced.len());
-    let mut last_dash = false;
-    for ch in replaced.chars() {
-        if ch == '-' {
-            if !last_dash {
-                cleaned.push('-');
-                last_dash = true;
-            }
-        } else if ch.is_ascii_punctuation() {
-            continue;
-        } else {
-            cleaned.push(ch);
-            last_dash = false;
-        }
-    }
-    cleaned.trim_matches('-').to_string()
+    canonicalize(input).unwrap_or_default()
 }
 
 #[derive(Debug, Clone)]
@@ -118,6 +84,18 @@ pub enum UserWordError {
     Sense(#[from] UserSenseError),
 }
 
+impl From<ValidationError> for UserWordError {
+    fn from(err: ValidationError) -> Self {
+        match err {
+            ValidationError::TagLimitExceeded(count) => UserWordError::TagLimitExceeded(count),
+            ValidationError::InvalidTag(tag) => UserWordError::InvalidTag(tag),
+            ValidationError::Blank => UserWordError::InvalidNote,
+            ValidationError::NoteTooLong(len) => UserWordError::NoteTooLong(len),
+            ValidationError::TextTooLong(len) => UserWordError::NoteTooLong(len),
+        }
+    }
+}
+
 #[derive(Debug, Error)]
 pub enum UserSenseError {
     #[error("sense text cannot be empty")]
@@ -130,6 +108,19 @@ pub enum UserSenseError {
     NoteTooLong(usize),
 }
 
+impl From<ValidationError> for UserSenseError {
+    fn from(err: ValidationError) -> Self {
+        match err {
+            ValidationError::Blank => UserSenseError::InvalidNote,
+            ValidationError::TextTooLong(len) => UserSenseError::TextTooLong(len),
+            ValidationError::NoteTooLong(len) => UserSenseError::NoteTooLong(len),
+            ValidationError::InvalidTag(_) | ValidationError::TagLimitExceeded(_) => {
+                UserSenseError::InvalidNote
+            }
+        }
+    }
+}
+
 impl UserWord {
     pub fn create(
         user_id: i64,
@@ -137,8 +128,8 @@ impl UserWord {
         tags: Vec<String>,
         note: Option<String>,
     ) -> Result<Self, UserWordError> {
-        let tags = normalize_tags(tags)?;
-        let note = validate_note(note)?;
+        let tags = normalize_tags(tags).map_err(UserWordError::from)?;
+        let note = validate_note(note).map_err(UserWordError::from)?;
         Ok(Self {
             id: None,
             user_id,
@@ -159,8 +150,8 @@ impl UserWord {
         senses: Vec<UserSense>,
         created_at: DateTime<Utc>,
     ) -> Result<Self, UserWordError> {
-        let tags = normalize_tags(tags)?;
-        let note = validate_note(note)?;
+        let tags = normalize_tags(tags).map_err(UserWordError::from)?;
+        let note = validate_note(note).map_err(UserWordError::from)?;
         let mut word = Self {
             id,
             user_id,
@@ -193,12 +184,12 @@ impl UserWord {
     }
 
     pub fn update_tags(&mut self, tags: Vec<String>) -> Result<(), UserWordError> {
-        self.tags = normalize_tags(tags)?;
+        self.tags = normalize_tags(tags).map_err(UserWordError::from)?;
         Ok(())
     }
 
     pub fn update_note(&mut self, note: Option<String>) -> Result<(), UserWordError> {
-        self.note = validate_note(note)?;
+        self.note = validate_note(note).map_err(UserWordError::from)?;
         Ok(())
     }
 
@@ -276,8 +267,11 @@ impl UserSense {
         sort_order: i32,
         note: Option<String>,
     ) -> Result<Self, UserSenseError> {
-        let text = normalize_sense_text(text.into())?;
-        let note = validate_sense_note(note)?;
+        let text = validate_non_empty_text(text.into()).map_err(UserSenseError::from)?;
+        if text.chars().count() > MAX_SENSE_TEXT_LENGTH {
+            return Err(UserSenseError::TextTooLong(text.chars().count()));
+        }
+        let note = validate_note(note).map_err(UserSenseError::from)?;
         Ok(Self {
             id: None,
             text,
@@ -296,8 +290,11 @@ impl UserSense {
         note: Option<String>,
         created_at: DateTime<Utc>,
     ) -> Result<Self, UserSenseError> {
-        let text = normalize_sense_text(text)?;
-        let note = validate_sense_note(note)?;
+        let text = validate_non_empty_text(text).map_err(UserSenseError::from)?;
+        if text.chars().count() > MAX_SENSE_TEXT_LENGTH {
+            return Err(UserSenseError::TextTooLong(text.chars().count()));
+        }
+        let note = validate_note(note).map_err(UserSenseError::from)?;
         Ok(Self {
             id,
             text,
@@ -321,12 +318,16 @@ impl UserSense {
     }
 
     pub fn set_text(&mut self, text: impl Into<String>) -> Result<(), UserSenseError> {
-        self.text = normalize_sense_text(text.into())?;
+        let value = validate_non_empty_text(text.into()).map_err(UserSenseError::from)?;
+        if value.chars().count() > MAX_SENSE_TEXT_LENGTH {
+            return Err(UserSenseError::TextTooLong(value.chars().count()));
+        }
+        self.text = value;
         Ok(())
     }
 
     pub fn set_note(&mut self, note: Option<String>) -> Result<(), UserSenseError> {
-        self.note = validate_sense_note(note)?;
+        self.note = validate_note(note).map_err(UserSenseError::from)?;
         Ok(())
     }
 
@@ -336,73 +337,6 @@ impl UserSense {
 
     pub fn set_primary(&mut self, is_primary: bool) {
         self.is_primary = is_primary;
-    }
-}
-
-fn normalize_tags(tags: Vec<String>) -> Result<Vec<String>, UserWordError> {
-    let mut seen = HashSet::new();
-    let mut normalized = Vec::new();
-    for raw in tags {
-        let trimmed = raw.trim();
-        if trimmed.is_empty() {
-            return Err(UserWordError::InvalidTag(raw));
-        }
-        if !TAG_REGEX.is_match(trimmed) {
-            return Err(UserWordError::InvalidTag(trimmed.to_string()));
-        }
-        let key = trimmed.to_ascii_lowercase();
-        if seen.insert(key) {
-            normalized.push(trimmed.to_string());
-        }
-    }
-    if normalized.len() > MAX_TAGS {
-        return Err(UserWordError::TagLimitExceeded(normalized.len()));
-    }
-    Ok(normalized)
-}
-
-fn validate_note(note: Option<String>) -> Result<Option<String>, UserWordError> {
-    match note {
-        Some(value) => {
-            let trimmed = value.trim();
-            if trimmed.is_empty() {
-                return Err(UserWordError::InvalidNote);
-            }
-            if trimmed.chars().count() > MAX_NOTE_LENGTH {
-                return Err(UserWordError::NoteTooLong(trimmed.chars().count()));
-            }
-            Ok(Some(trimmed.to_string()))
-        }
-        None => Ok(None),
-    }
-}
-
-fn normalize_sense_text(text: String) -> Result<String, UserSenseError> {
-    let trimmed = text.trim();
-    if trimmed.is_empty() {
-        return Err(UserSenseError::EmptyText);
-    }
-    let length = trimmed.chars().count();
-    if length > MAX_SENSE_TEXT_LENGTH {
-        return Err(UserSenseError::TextTooLong(length));
-    }
-    Ok(trimmed.to_string())
-}
-
-fn validate_sense_note(note: Option<String>) -> Result<Option<String>, UserSenseError> {
-    match note {
-        Some(value) => {
-            let trimmed = value.trim();
-            if trimmed.is_empty() {
-                return Err(UserSenseError::InvalidNote);
-            }
-            let length = trimmed.chars().count();
-            if length > MAX_SENSE_NOTE_LENGTH {
-                return Err(UserSenseError::NoteTooLong(length));
-            }
-            Ok(Some(trimmed.to_string()))
-        }
-        None => Ok(None),
     }
 }
 

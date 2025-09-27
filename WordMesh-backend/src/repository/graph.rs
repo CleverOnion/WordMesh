@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use neo4rs::{query, Graph, Node, Relation};
+use neo4rs::{Graph, Node, Relation, query};
 use thiserror::Error;
-use tokio::time::{timeout, Duration};
+use tokio::time::{Duration, timeout};
 
 use crate::config::settings::Neo4jSettings;
 use crate::util::error::{BusinessError, LinkError};
@@ -152,7 +152,10 @@ pub trait GraphRepository: Send + Sync {
         kind: SenseWordLinkKind,
     ) -> GraphResult<()>;
 
-    async fn list_sense_word_links(&self, filter: SenseLinkFilter) -> GraphResult<Vec<SenseWordLinkRecord>>;
+    async fn list_sense_word_links(
+        &self,
+        filter: SenseLinkFilter,
+    ) -> GraphResult<Vec<SenseWordLinkRecord>>;
 
     async fn remove_links_for_sense(&self, sense_id: i64) -> GraphResult<()>;
 
@@ -169,7 +172,11 @@ pub struct Neo4jGraphRepository {
 
 impl Neo4jGraphRepository {
     pub async fn from_settings(settings: &Neo4jSettings) -> Result<Self, neo4rs::Error> {
-        let graph = Graph::new(&settings.uri, settings.username.clone(), settings.password.clone())?;
+        let graph = Graph::new(
+            &settings.uri,
+            settings.username.clone(),
+            settings.password.clone(),
+        )?;
         Ok(Self {
             graph: Arc::new(graph),
             timeout: Duration::from_secs(settings.query_timeout_seconds),
@@ -207,24 +214,25 @@ impl Neo4jGraphRepository {
         let word_b: Node = row
             .get("word_b")
             .map_err(|_| GraphRepositoryError::InvalidData("missing word_b".into()))?;
-        let kind: String = rel
-            .get("kind")
-            .map_err(|_| GraphRepositoryError::InvalidData("missing kind field on relationship".into()))?;
+        let kind: String = rel.get("kind").map_err(|_| {
+            GraphRepositoryError::InvalidData("missing kind field on relationship".into())
+        })?;
         Ok(WordLinkRecord {
             link_id: rel.id().to_string(),
-            user_id: rel
-                .get("user_id")
-                .map_err(|_| GraphRepositoryError::InvalidData("missing user_id on relationship".into()))?,
-            kind: WordLinkKind::try_from_str(&kind)
-                .ok_or_else(|| GraphRepositoryError::InvalidData("invalid word link kind".into()))?,
+            user_id: rel.get("user_id").map_err(|_| {
+                GraphRepositoryError::InvalidData("missing user_id on relationship".into())
+            })?,
+            kind: WordLinkKind::try_from_str(&kind).ok_or_else(|| {
+                GraphRepositoryError::InvalidData("invalid word link kind".into())
+            })?,
             note: rel.get("note").unwrap_or(None),
             created_at: Self::parse_datetime(&rel)?,
-            word_a_id: word_a
-                .get("word_id")
-                .map_err(|_| GraphRepositoryError::InvalidData("missing word_id on word_a".into()))?,
-            word_b_id: word_b
-                .get("word_id")
-                .map_err(|_| GraphRepositoryError::InvalidData("missing word_id on word_b".into()))?,
+            word_a_id: word_a.get("word_id").map_err(|_| {
+                GraphRepositoryError::InvalidData("missing word_id on word_a".into())
+            })?,
+            word_b_id: word_b.get("word_id").map_err(|_| {
+                GraphRepositoryError::InvalidData("missing word_id on word_b".into())
+            })?,
         })
     }
 
@@ -238,35 +246,35 @@ impl Neo4jGraphRepository {
         let rel: Relation = row
             .get("rel")
             .map_err(|_| GraphRepositoryError::InvalidData("missing relationship".into()))?;
-        let kind_str: String = rel
-            .get("kind")
-            .map_err(|_| GraphRepositoryError::InvalidData("missing kind on relationship".into()))?;
+        let kind_str: String = rel.get("kind").map_err(|_| {
+            GraphRepositoryError::InvalidData("missing kind on relationship".into())
+        })?;
         Ok(SenseWordLinkRecord {
             link_id: rel.id().to_string(),
-            user_id: sense_node
-                .get("user_id")
-                .map_err(|_| GraphRepositoryError::InvalidData("missing user_id on sense".into()))?,
+            user_id: sense_node.get("user_id").map_err(|_| {
+                GraphRepositoryError::InvalidData("missing user_id on sense".into())
+            })?,
             kind: SenseWordLinkKind::try_from_str(&kind_str).ok_or_else(|| {
                 GraphRepositoryError::InvalidData("invalid sense-word link kind".into())
             })?,
             note: rel.get("note").unwrap_or(None),
             created_at: Self::parse_datetime(&rel)?,
-            sense_id: sense_node
-                .get("sense_id")
-                .map_err(|_| GraphRepositoryError::InvalidData("missing sense_id on sense".into()))?,
-            source_word_id: sense_node
-                .get("word_id")
-                .map_err(|_| GraphRepositoryError::InvalidData("missing source word id on sense".into()))?,
-            target_word_id: word_node
-                .get("word_id")
-                .map_err(|_| GraphRepositoryError::InvalidData("missing word_id on target word".into()))?,
+            sense_id: sense_node.get("sense_id").map_err(|_| {
+                GraphRepositoryError::InvalidData("missing sense_id on sense".into())
+            })?,
+            source_word_id: sense_node.get("word_id").map_err(|_| {
+                GraphRepositoryError::InvalidData("missing source word id on sense".into())
+            })?,
+            target_word_id: word_node.get("word_id").map_err(|_| {
+                GraphRepositoryError::InvalidData("missing word_id on target word".into())
+            })?,
         })
     }
 
     fn parse_datetime(rel: &Relation) -> GraphResult<DateTime<Utc>> {
-        let dt = rel
-            .get::<DateTime<Utc>>("created_at")
-            .map_err(|_| GraphRepositoryError::InvalidData("missing created_at on relationship".into()))?;
+        let dt = rel.get::<DateTime<Utc>>("created_at").map_err(|_| {
+            GraphRepositoryError::InvalidData("missing created_at on relationship".into())
+        })?;
         Ok(dt)
     }
 
@@ -346,7 +354,10 @@ impl GraphRepository for Neo4jGraphRepository {
 
         let kinds: Vec<&str> = match filter.kind {
             Some(kind) => vec![kind.as_str()],
-            None => vec![WordLinkKind::SimilarForm.as_str(), WordLinkKind::RootAffix.as_str()],
+            None => vec![
+                WordLinkKind::SimilarForm.as_str(),
+                WordLinkKind::RootAffix.as_str(),
+            ],
         };
 
         builder = builder.param("kinds", kinds);
@@ -413,7 +424,10 @@ impl GraphRepository for Neo4jGraphRepository {
         self.run_with_timeout(query).await.map(|_| ())
     }
 
-    async fn list_sense_word_links(&self, filter: SenseLinkFilter) -> GraphResult<Vec<SenseWordLinkRecord>> {
+    async fn list_sense_word_links(
+        &self,
+        filter: SenseLinkFilter,
+    ) -> GraphResult<Vec<SenseWordLinkRecord>> {
         let mut builder = query(
             "MATCH (sense:UserSense { sense_id: $sense_id, user_id: $user_id })-[rel:SENSE_TO_WORD]->(word:Word)\nWHERE rel.kind IN $kinds\nRETURN sense, word, rel\nORDER BY rel.created_at DESC\nSKIP $offset LIMIT $limit",
         )
@@ -438,25 +452,21 @@ impl GraphRepository for Neo4jGraphRepository {
     }
 
     async fn remove_links_for_sense(&self, sense_id: i64) -> GraphResult<()> {
-        let query = query(
-            "MATCH (:UserSense { sense_id: $sense_id })-[rel:SENSE_TO_WORD]->()\nDELETE rel",
-        )
-        .param("sense_id", sense_id);
+        let query =
+            query("MATCH (:UserSense { sense_id: $sense_id })-[rel:SENSE_TO_WORD]->()\nDELETE rel")
+                .param("sense_id", sense_id);
         self.run_with_timeout(query).await.map(|_| ())
     }
 
     async fn upsert_node_word(&self, word_id: i64) -> GraphResult<()> {
-        let query = query("MERGE (:Word { word_id: $word_id })")
-            .param("word_id", word_id);
+        let query = query("MERGE (:Word { word_id: $word_id })").param("word_id", word_id);
         self.run_with_timeout(query).await.map(|_| ())
     }
 
     async fn upsert_node_sense(&self, sense_id: i64, user_id: i64) -> GraphResult<()> {
-        let query = query(
-            "MERGE (:UserSense { sense_id: $sense_id, user_id: $user_id })",
-        )
-        .param("sense_id", sense_id)
-        .param("user_id", user_id);
+        let query = query("MERGE (:UserSense { sense_id: $sense_id, user_id: $user_id })")
+            .param("sense_id", sense_id)
+            .param("user_id", user_id);
         self.run_with_timeout(query).await.map(|_| ())
     }
 }
