@@ -56,11 +56,10 @@
   - [x] 索引：WORD_TO_WORD(r.user_id,r.kind)、SENSE_TO_WORD(r.user_id,r.kind)
   - [x] 提供 `deployment/init-scripts/*.cypher` 与执行说明
     - 更新 `wordmesh-neo4j-schema.cypher` 与 `02-init-neo4j.sh`，覆盖约束/索引并删除示例数据。
-- [ ] 仓储接口
+- [x] 仓储接口
   - [x] `repository::word`（PG）：words/user_words/user_senses CRUD + 查询 + 搜索
     - 新增 `PgWordRepository`，覆盖 Word/ UserWord/ UserSense 的 UPSERT、CRUD、搜索接口。
   - [x] `repository::graph`（Neo4j）：词-词与义 → 词关联的查询与写入接口
-    - 实现 `Neo4jGraphRepository`：支持 WORD_TO_WORD/SENSE_TO_WORD 的创建、查询、删除，并处理去重与幂等。
 - [ ] 仓储测试
   - [ ] SQLx 基础用例（唯一约束/UPSERT/CASCADE）
   - [ ] Neo4j 最小链路（MERGE 幂等、端点排序、筛选）

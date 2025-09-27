@@ -370,7 +370,7 @@ mod tests {
                 new_user.password_hash,
                 Utc::now(),
             )
-                .unwrap();
+            .unwrap();
             username_idx.insert(user.username.clone(), user.id);
             users.insert(id, user.clone());
             Ok(user)
@@ -562,7 +562,7 @@ mod tests {
             AppError::BusinessError(BusinessError::Validation(fields)) => {
                 assert!(!fields.is_empty());
             }
-            other => panic!("expected validation error, got {:?}", other)
+            other => panic!("expected validation error, got {:?}", other),
         }
     }
 }

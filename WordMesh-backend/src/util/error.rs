@@ -195,20 +195,20 @@ impl ResponseError for AppError {
                         ResponseBuilder::current_trace_id(),
                     ))
                 }
-                BusinessError::Word(word_error) => HttpResponse::Ok().json(
-                    ApiResponse::<serde_json::Value>::error_with_trace(
+                BusinessError::Word(word_error) => {
+                    HttpResponse::Ok().json(ApiResponse::<serde_json::Value>::error_with_trace(
                         word_error.code(),
                         word_error.to_string(),
                         ResponseBuilder::current_trace_id(),
-                    ),
-                ),
-                BusinessError::Link(link_error) => HttpResponse::Ok().json(
-                    ApiResponse::<serde_json::Value>::error_with_trace(
+                    ))
+                }
+                BusinessError::Link(link_error) => {
+                    HttpResponse::Ok().json(ApiResponse::<serde_json::Value>::error_with_trace(
                         link_error.code(),
                         link_error.to_string(),
                         ResponseBuilder::current_trace_id(),
-                    ),
-                ),
+                    ))
+                }
                 _ => HttpResponse::Ok().json(ApiResponse::<serde_json::Value>::error_with_trace(
                     4000,
                     be.to_string(),

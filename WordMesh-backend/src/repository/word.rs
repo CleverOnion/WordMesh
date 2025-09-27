@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use serde_json::Value as JsonValue;
-use sqlx::{postgres::PgRow, PgPool, Row};
+use sqlx::{PgPool, Row, postgres::PgRow};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -83,7 +83,11 @@ pub struct SearchParams {
 
 #[async_trait]
 pub trait WordRepository {
-    async fn upsert_word(&self, canonical: &CanonicalKey, text: &str) -> Result<WordRecord, WordRepositoryError>;
+    async fn upsert_word(
+        &self,
+        canonical: &CanonicalKey,
+        text: &str,
+    ) -> Result<WordRecord, WordRepositoryError>;
     async fn upsert_user_word(
         &self,
         payload: UpsertUserWord,
@@ -93,7 +97,11 @@ pub trait WordRepository {
         user_id: i64,
         user_word_id: i64,
     ) -> Result<Option<UserWordAggregate>, WordRepositoryError>;
-    async fn remove_user_word(&self, user_id: i64, user_word_id: i64) -> Result<(), WordRepositoryError>;
+    async fn remove_user_word(
+        &self,
+        user_id: i64,
+        user_word_id: i64,
+    ) -> Result<(), WordRepositoryError>;
 
     async fn add_user_sense(&self, sense: NewUserSense) -> Result<UserSense, WordRepositoryError>;
     async fn update_user_sense(
@@ -102,9 +110,16 @@ pub trait WordRepository {
         sense_id: i64,
         update: SenseUpdate,
     ) -> Result<UserSense, WordRepositoryError>;
-    async fn remove_user_sense(&self, user_id: i64, sense_id: i64) -> Result<UserSense, WordRepositoryError>;
+    async fn remove_user_sense(
+        &self,
+        user_id: i64,
+        sense_id: i64,
+    ) -> Result<UserSense, WordRepositoryError>;
 
-    async fn search(&self, params: SearchParams) -> Result<Vec<UserWordAggregate>, WordRepositoryError>;
+    async fn search(
+        &self,
+        params: SearchParams,
+    ) -> Result<Vec<UserWordAggregate>, WordRepositoryError>;
 }
 
 #[derive(Clone)]
@@ -223,7 +238,11 @@ struct JsonSenseRow {
 
 #[async_trait]
 impl WordRepository for PgWordRepository {
-    async fn upsert_word(&self, canonical: &CanonicalKey, text: &str) -> Result<WordRecord, WordRepositoryError> {
+    async fn upsert_word(
+        &self,
+        canonical: &CanonicalKey,
+        text: &str,
+    ) -> Result<WordRecord, WordRepositoryError> {
         let row = sqlx::query(
             r#"
             INSERT INTO words (text, canonical_key)
@@ -279,9 +298,9 @@ impl WordRepository for PgWordRepository {
         let user_word_id: i64 = inserted.try_get("id")?;
 
         tx.commit().await?;
-        self.find_user_word(payload.user_id, user_word_id).await?.ok_or_else(|| {
-            WordRepositoryError::Database(sqlx::Error::RowNotFound)
-        })
+        self.find_user_word(payload.user_id, user_word_id)
+            .await?
+            .ok_or_else(|| WordRepositoryError::Database(sqlx::Error::RowNotFound))
     }
 
     async fn find_user_word(
@@ -289,15 +308,26 @@ impl WordRepository for PgWordRepository {
         user_id: i64,
         user_word_id: i64,
     ) -> Result<Option<UserWordAggregate>, WordRepositoryError> {
-        let sql = format!("{} AND uw.id = $2 GROUP BY uw.id, w.id", Self::aggregate_query());
-        let maybe_row = sqlx::query(&sql).bind(user_id).bind(user_word_id).fetch_optional(&self.pool).await?;
+        let sql = format!(
+            "{} AND uw.id = $2 GROUP BY uw.id, w.id",
+            Self::aggregate_query()
+        );
+        let maybe_row = sqlx::query(&sql)
+            .bind(user_id)
+            .bind(user_word_id)
+            .fetch_optional(&self.pool)
+            .await?;
         match maybe_row {
             Some(row) => Ok(Some(Self::build_aggregate(row)?)),
             None => Ok(None),
         }
     }
 
-    async fn remove_user_word(&self, user_id: i64, user_word_id: i64) -> Result<(), WordRepositoryError> {
+    async fn remove_user_word(
+        &self,
+        user_id: i64,
+        user_word_id: i64,
+    ) -> Result<(), WordRepositoryError> {
         sqlx::query(
             r#"
             DELETE FROM user_words
@@ -479,12 +509,18 @@ impl WordRepository for PgWordRepository {
         .map_err(WordRepositoryError::from)
     }
 
-    async fn search(&self, params: SearchParams) -> Result<Vec<UserWordAggregate>, WordRepositoryError> {
+    async fn search(
+        &self,
+        params: SearchParams,
+    ) -> Result<Vec<UserWordAggregate>, WordRepositoryError> {
         let base = format!("{}", Self::aggregate_query());
         let trimmed = params.query.trim();
         let sql;
         let rows = if trimmed.is_empty() {
-            sql = format!("{} GROUP BY uw.id, w.id ORDER BY w.canonical_key LIMIT $2 OFFSET $3", base);
+            sql = format!(
+                "{} GROUP BY uw.id, w.id ORDER BY w.canonical_key LIMIT $2 OFFSET $3",
+                base
+            );
             sqlx::query(&sql)
                 .bind(params.user_id)
                 .bind(params.limit)

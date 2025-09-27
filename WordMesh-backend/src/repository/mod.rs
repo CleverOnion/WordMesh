@@ -4,12 +4,13 @@ pub mod word;
 
 #[allow(unused_imports)]
 pub use graph::{
-    GraphRepository, GraphRepositoryError, Neo4jGraphRepository, SenseWordLinkRecord, WordLinkRecord,
+    GraphRepository, GraphRepositoryError, Neo4jGraphRepository, SenseWordLinkRecord,
+    WordLinkRecord,
 };
 #[allow(unused_imports)]
 pub use user::{NewUser, PgUserRepository, RepositoryError, UserRepository};
 #[allow(unused_imports)]
 pub use word::{
-    NewUserSense, SearchParams, SearchScope, SenseUpdate, UpsertUserWord, UserWordAggregate, WordRecord,
-    WordRepository, WordRepositoryError, PgWordRepository,
+    NewUserSense, PgWordRepository, SearchParams, SearchScope, SenseUpdate, UpsertUserWord,
+    UserWordAggregate, WordRecord, WordRepository, WordRepositoryError,
 };

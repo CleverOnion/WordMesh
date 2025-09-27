@@ -52,7 +52,6 @@ impl From<PasswordHashError> for UserDomainError {
     }
 }
 
-
 impl User {
     pub fn new(
         id: i64,
