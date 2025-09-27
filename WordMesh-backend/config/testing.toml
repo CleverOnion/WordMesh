@@ -6,13 +6,15 @@ password = "Shicong666"
 host = "localhost"
 port = 5432
 database_name = "wordmesh"
-max_connections = 5
+pool_size = 5
 connect_timeout_seconds = 5
 
 [neo4j]
 uri = "bolt://localhost:7688"
 username = "neo4j"
 password = "test123"
+pool_size = 10
+query_timeout_seconds = 5
 
 [application]
 host = "127.0.0.1"

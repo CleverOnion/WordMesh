@@ -69,7 +69,7 @@ async fn main() -> Result<(), AppError> {
 fn build_auth_controller(settings: Arc<Settings>) -> AuthController<PgUserRepository> {
     let db_settings = &settings.database;
     let pool = sqlx::postgres::PgPoolOptions::new()
-        .max_connections(db_settings.max_connections)
+        .max_connections(db_settings.pool_size)
         .connect_lazy_with(db_settings.connect_options());
     let repository = PgUserRepository::new(pool);
     let auth_settings = &settings.auth;

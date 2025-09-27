@@ -21,7 +21,8 @@ pub struct DatabaseSettings {
     pub host: String,
     pub port: u16,
     pub database_name: String,
-    pub max_connections: u32,
+    #[serde(default = "DatabaseSettings::default_pool_size")]
+    pub pool_size: u32,
     #[serde(default = "DatabaseSettings::default_connect_timeout_seconds")]
     pub connect_timeout_seconds: u64,
 }
@@ -44,8 +45,29 @@ impl DatabaseSettings {
             .database(&self.database_name)
     }
 
+    fn default_pool_size() -> u32 {
+        10
+    }
+
     fn default_connect_timeout_seconds() -> u64 {
         5
+    }
+
+    #[allow(dead_code)]
+    pub fn validate(&self) -> Result<(), config::ConfigError> {
+        if self.pool_size == 0 {
+            return Err(config::ConfigError::Message(
+                "database.pool_size must be greater than 0".into(),
+            ));
+        }
+
+        if self.connect_timeout_seconds == 0 {
+            return Err(config::ConfigError::Message(
+                "database.connect_timeout_seconds must be greater than 0".into(),
+            ));
+        }
+
+        Ok(())
     }
 }
 
@@ -55,6 +77,37 @@ pub struct Neo4jSettings {
     pub uri: String,
     pub username: String,
     pub password: String,
+    #[serde(default = "Neo4jSettings::default_pool_size")]
+    pub pool_size: u32,
+    #[serde(default = "Neo4jSettings::default_query_timeout_seconds")]
+    pub query_timeout_seconds: u64,
+}
+
+impl Neo4jSettings {
+    #[allow(dead_code)]
+    pub fn validate(&self) -> Result<(), config::ConfigError> {
+        if self.pool_size == 0 {
+            return Err(config::ConfigError::Message(
+                "neo4j.pool_size must be greater than 0".into(),
+            ));
+        }
+
+        if self.query_timeout_seconds == 0 {
+            return Err(config::ConfigError::Message(
+                "neo4j.query_timeout_seconds must be greater than 0".into(),
+            ));
+        }
+
+        Ok(())
+    }
+
+    fn default_pool_size() -> u32 {
+        10
+    }
+
+    fn default_query_timeout_seconds() -> u64 {
+        5
+    }
 }
 
 #[allow(dead_code)]
@@ -153,6 +206,8 @@ impl Settings {
 
     #[allow(dead_code)]
     pub fn validate(&self) -> Result<(), config::ConfigError> {
+        self.database.validate()?;
+        self.neo4j.validate()?;
         self.auth.validate()?;
         Ok(())
     }
@@ -167,13 +222,15 @@ impl Default for Settings {
                 host: "localhost".to_string(),
                 port: 5432,
                 database_name: "wordmesh_dev".to_string(),
-                max_connections: 5,
+                pool_size: DatabaseSettings::default_pool_size(),
                 connect_timeout_seconds: DatabaseSettings::default_connect_timeout_seconds(),
             },
             neo4j: Neo4jSettings {
                 uri: "bolt://localhost:7687".to_string(),
                 username: "neo4j".to_string(),
                 password: "wordmesh123".to_string(),
+                pool_size: Neo4jSettings::default_pool_size(),
+                query_timeout_seconds: Neo4jSettings::default_query_timeout_seconds(),
             },
             application: ApplicationSettings {
                 host: "127.0.0.1".to_string(),

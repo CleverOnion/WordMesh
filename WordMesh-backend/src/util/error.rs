@@ -29,6 +29,10 @@ pub enum BusinessError {
     Order(#[from] OrderError),
     #[error(transparent)]
     Auth(#[from] AuthFlowError),
+    #[error(transparent)]
+    Word(#[from] WordError),
+    #[error(transparent)]
+    Link(#[from] LinkError),
     #[error("Validation failed")]
     Validation(Vec<ValidationField>),
 }
@@ -62,6 +66,57 @@ pub enum AuthFlowError {
     TokenInvalid,
     #[error("Refresh token disabled")]
     RefreshDisabled,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Error)]
+pub enum WordError {
+    #[error("Word already exists in network")]
+    AlreadyExists,
+    #[error("Word not found in user network")]
+    NotInNetwork,
+    #[error("Sense text already exists")]
+    SenseDuplicate,
+    #[error("Primary sense conflict")]
+    PrimaryConflict,
+}
+
+impl WordError {
+    fn code(&self) -> i32 {
+        match self {
+            WordError::AlreadyExists => 4201,
+            WordError::NotInNetwork => 4202,
+            WordError::SenseDuplicate => 4203,
+            WordError::PrimaryConflict => 4204,
+        }
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Error)]
+pub enum LinkError {
+    #[error("Link already exists")]
+    Exists,
+    #[error("Self link is forbidden")]
+    SelfForbidden,
+    #[error("Link target not found")]
+    TargetNotFound,
+    #[error("Link type is invalid")]
+    TypeInvalid,
+    #[error("Link limit exceeded")]
+    LimitExceeded,
+}
+
+impl LinkError {
+    fn code(&self) -> i32 {
+        match self {
+            LinkError::Exists => 4301,
+            LinkError::SelfForbidden => 4302,
+            LinkError::TargetNotFound => 4303,
+            LinkError::TypeInvalid => 4304,
+            LinkError::LimitExceeded => 4305,
+        }
+    }
 }
 
 #[allow(dead_code)]
@@ -140,6 +195,20 @@ impl ResponseError for AppError {
                         ResponseBuilder::current_trace_id(),
                     ))
                 }
+                BusinessError::Word(word_error) => HttpResponse::Ok().json(
+                    ApiResponse::<serde_json::Value>::error_with_trace(
+                        word_error.code(),
+                        word_error.to_string(),
+                        ResponseBuilder::current_trace_id(),
+                    ),
+                ),
+                BusinessError::Link(link_error) => HttpResponse::Ok().json(
+                    ApiResponse::<serde_json::Value>::error_with_trace(
+                        link_error.code(),
+                        link_error.to_string(),
+                        ResponseBuilder::current_trace_id(),
+                    ),
+                ),
                 _ => HttpResponse::Ok().json(ApiResponse::<serde_json::Value>::error_with_trace(
                     4000,
                     be.to_string(),
@@ -202,6 +271,36 @@ mod tests {
         let data = json["data"].as_array().expect("data array");
         assert_eq!(data[0]["field"], "username");
         assert_eq!(data[0]["message"], "required");
+        assert!(json["traceId"].is_string());
+        assert!(json["timestamp"].is_number());
+    }
+
+    #[actix_rt::test]
+    async fn word_error_returns_expected_payload() {
+        let error = AppError::from(BusinessError::from(WordError::AlreadyExists));
+        let response = error.error_response();
+        assert_eq!(response.status(), actix_web::http::StatusCode::OK);
+
+        let body = to_bytes(response.into_body()).await.unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["code"], 4201);
+        assert_eq!(json["message"], "Word already exists in network");
+        assert!(json["data"].is_null());
+        assert!(json["traceId"].is_string());
+        assert!(json["timestamp"].is_number());
+    }
+
+    #[actix_rt::test]
+    async fn link_error_returns_expected_payload() {
+        let error = AppError::from(BusinessError::from(LinkError::SelfForbidden));
+        let response = error.error_response();
+        assert_eq!(response.status(), actix_web::http::StatusCode::OK);
+
+        let body = to_bytes(response.into_body()).await.unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["code"], 4302);
+        assert_eq!(json["message"], "Self link is forbidden");
+        assert!(json["data"].is_null());
         assert!(json["traceId"].is_string());
         assert!(json["timestamp"].is_number());
     }
