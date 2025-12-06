@@ -10,9 +10,9 @@ pool_size = 5
 connect_timeout_seconds = 5
 
 [neo4j]
-uri = "bolt://localhost:7688"
+uri = "bolt://localhost:17687"
 username = "neo4j"
-password = "test123"
+password = "wordmesh123"
 pool_size = 10
 query_timeout_seconds = 5
 

@@ -382,10 +382,11 @@ impl GraphRepository for Neo4jGraphRepository {
         }
 
         let mut builder = query(
-            "MERGE (sense:UserSense { sense_id: $sense_id, user_id: $user_id })\nMERGE (target:Word { word_id: $target_word_id })\nMERGE (sense)-[rel:SENSE_TO_WORD { user_id: $user_id, kind: $kind }]->(target)\nON CREATE SET rel.created_at = datetime(), rel.note = $note\nON MATCH SET rel.note = CASE WHEN $note IS NULL THEN rel.note ELSE $note END\nRETURN sense, target AS word, rel",
+            "MERGE (sense:UserSense { sense_id: $sense_id, user_id: $user_id })\nON CREATE SET sense.word_id = $source_word_id\nON MATCH SET sense.word_id = COALESCE(sense.word_id, $source_word_id)\nMERGE (target:Word { word_id: $target_word_id })\nMERGE (sense)-[rel:SENSE_TO_WORD { user_id: $user_id, kind: $kind }]->(target)\nON CREATE SET rel.created_at = datetime(), rel.note = $note\nON MATCH SET rel.note = CASE WHEN $note IS NULL THEN rel.note ELSE $note END\nRETURN sense, target AS word, rel",
         )
         .param("sense_id", sense_id)
         .param("user_id", user_id)
+        .param("source_word_id", source_word_id)
         .param("target_word_id", target_word_id)
         .param("kind", kind.as_str())
         .param("note", note);

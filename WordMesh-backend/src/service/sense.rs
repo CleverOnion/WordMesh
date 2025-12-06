@@ -153,6 +153,9 @@ mod tests {
 
     struct StubWordRepository {
         user_word: Option<UserWordAggregate>,
+        add_sense_result: Option<Result<UserSense, WordRepositoryError>>,
+        update_sense_result: Option<Result<UserSense, WordRepositoryError>>,
+        remove_sense_result: Option<Result<UserSense, WordRepositoryError>>,
     }
 
     impl StubWordRepository {
@@ -169,6 +172,45 @@ mod tests {
             };
             Self {
                 user_word: Some(aggregate),
+                add_sense_result: None,
+                update_sense_result: None,
+                remove_sense_result: None,
+            }
+        }
+
+        fn without_word() -> Self {
+            Self {
+                user_word: None,
+                add_sense_result: None,
+                update_sense_result: None,
+                remove_sense_result: None,
+            }
+        }
+
+        fn with_successful_remove() -> Self {
+            let aggregate = UserWordAggregate {
+                word: WordRecord {
+                    id: 10,
+                    text: "hello".into(),
+                    canonical_key: CanonicalKey::new("hello").unwrap(),
+                    created_at: Utc::now(),
+                },
+                user_word: UserWord::from_parts(None, 1, 10, vec![], None, vec![], Utc::now())
+                    .unwrap(),
+            };
+            let sense = UserSense::from_parts(
+                Some(1),
+                "meaning".to_string(),
+                true,
+                0,
+                None,
+                Utc::now(),
+            ).unwrap();
+            Self {
+                user_word: Some(aggregate),
+                add_sense_result: None,
+                update_sense_result: None,
+                remove_sense_result: Some(Ok(sense)),
             }
         }
     }
@@ -208,21 +250,67 @@ mod tests {
 
         async fn add_user_sense(
             &self,
-            _sense: NewUserSense,
+            sense: NewUserSense,
         ) -> Result<UserSense, WordRepositoryError> {
-            let sense = UserSense::new("meaning", true, 0, None).unwrap();
-            Ok(sense)
+            if let Some(result) = &self.add_sense_result {
+                if let Ok(s) = result {
+                    return Ok(UserSense::from_parts(
+                        s.id(),
+                        s.text().to_string(),
+                        s.is_primary,
+                        s.sort_order,
+                        s.note().map(|n| n.to_string()),
+                        Utc::now(),
+                    ).map_err(WordRepositoryError::UserSense)?);
+                } else {
+                    return Err(WordRepositoryError::UserSense(
+                        crate::domain::word::UserSenseError::InvalidNote,
+                    ));
+                }
+            }
+            UserSense::from_parts(
+                Some(1),
+                sense.text,
+                sense.is_primary,
+                sense.sort_order,
+                sense.note,
+                Utc::now(),
+            )
+            .map_err(WordRepositoryError::UserSense)
         }
 
         async fn update_user_sense(
             &self,
             _user_id: i64,
-            _sense_id: i64,
-            _update: SenseUpdate,
+            sense_id: i64,
+            update: SenseUpdate,
         ) -> Result<UserSense, WordRepositoryError> {
-            let mut sense = UserSense::new("meaning", true, 0, None).unwrap();
-            sense.set_text("updated").unwrap();
-            Ok(sense)
+            if let Some(result) = &self.update_sense_result {
+                if let Ok(s) = result {
+                    return Ok(UserSense::from_parts(
+                        s.id(),
+                        s.text().to_string(),
+                        s.is_primary,
+                        s.sort_order,
+                        s.note().map(|n| n.to_string()),
+                        Utc::now(),
+                    ).map_err(WordRepositoryError::UserSense)?);
+                } else {
+                    return Err(WordRepositoryError::UserSense(
+                        crate::domain::word::UserSenseError::InvalidNote,
+                    ));
+                }
+            }
+            let text = update.text.unwrap_or_else(|| "updated".to_string());
+            UserSense::from_parts(
+                Some(sense_id),
+                text,
+                update.is_primary.unwrap_or(true),
+                update.sort_order.unwrap_or(0),
+                update.note.flatten(),
+                Utc::now(),
+            )
+            .map_err(WordRepositoryError::UserSense)
         }
 
         async fn remove_user_sense(
@@ -230,6 +318,22 @@ mod tests {
             _user_id: i64,
             _sense_id: i64,
         ) -> Result<UserSense, WordRepositoryError> {
+            if let Some(result) = &self.remove_sense_result {
+                if let Ok(s) = result {
+                    return Ok(UserSense::from_parts(
+                        s.id(),
+                        s.text().to_string(),
+                        s.is_primary,
+                        s.sort_order,
+                        s.note().map(|n| n.to_string()),
+                        Utc::now(),
+                    ).map_err(WordRepositoryError::UserSense)?);
+                } else {
+                    return Err(WordRepositoryError::UserSense(
+                        crate::domain::word::UserSenseError::InvalidNote,
+                    ));
+                }
+            }
             Err(WordRepositoryError::UserSense(
                 crate::domain::word::UserSenseError::InvalidNote,
             ))
@@ -351,6 +455,137 @@ mod tests {
             )
             .await
             .expect("sense added");
+        assert_eq!(sense.text(), "meaning");
+    }
+
+    #[tokio::test]
+    async fn add_sense_word_not_found() {
+        let service = SenseService::new(
+            StubWordRepository::without_word(),
+            StubGraphRepository,
+        );
+        let err = service
+            .add_sense(
+                1,
+                999,
+                SenseInput {
+                    text: "meaning".into(),
+                    is_primary: true,
+                    sort_order: 0,
+                    note: None,
+                },
+            )
+            .await
+            .unwrap_err();
+        assert!(matches!(
+            err,
+            AppError::BusinessError(BusinessError::Word(WordError::NotInNetwork))
+        ));
+    }
+
+    #[tokio::test]
+    async fn add_sense_empty_text_error() {
+        let service = SenseService::new(
+            StubWordRepository::with_existing_word(),
+            StubGraphRepository,
+        );
+        let err = service
+            .add_sense(
+                1,
+                10,
+                SenseInput {
+                    text: "   ".into(), // Empty after normalization
+                    is_primary: true,
+                    sort_order: 0,
+                    note: None,
+                },
+            )
+            .await
+            .unwrap_err();
+        assert!(matches!(
+            err,
+            AppError::BusinessError(BusinessError::Validation(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn update_sense_success() {
+        let service = SenseService::new(
+            StubWordRepository::with_existing_word(),
+            StubGraphRepository,
+        );
+        let result = service
+            .update_sense(
+                1,
+                1,
+                SenseUpdateInput {
+                    text: Some("updated meaning".into()),
+                    is_primary: Some(false),
+                    sort_order: Some(1),
+                    note: Some(Some("note".into())),
+                },
+            )
+            .await;
+        assert!(result.is_ok());
+        let sense = result.unwrap();
+        assert_eq!(sense.text(), "updated meaning");
+    }
+
+    #[tokio::test]
+    async fn update_sense_partial_update() {
+        let service = SenseService::new(
+            StubWordRepository::with_existing_word(),
+            StubGraphRepository,
+        );
+        let result = service
+            .update_sense(
+                1,
+                1,
+                SenseUpdateInput {
+                    text: None,
+                    is_primary: Some(true),
+                    sort_order: None,
+                    note: None,
+                },
+            )
+            .await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn update_sense_validation_error() {
+        let service = SenseService::new(
+            StubWordRepository::with_existing_word(),
+            StubGraphRepository,
+        );
+        let err = service
+            .update_sense(
+                1,
+                1,
+                SenseUpdateInput {
+                    text: Some("   ".into()), // Empty after normalization
+                    is_primary: None,
+                    sort_order: None,
+                    note: None,
+                },
+            )
+            .await
+            .unwrap_err();
+        assert!(matches!(
+            err,
+            AppError::BusinessError(BusinessError::Validation(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn remove_sense_success() {
+        let service = SenseService::new(
+            StubWordRepository::with_successful_remove(),
+            StubGraphRepository,
+        );
+        let result = service.remove_sense(1, 1).await;
+        assert!(result.is_ok());
+        let sense = result.unwrap();
         assert_eq!(sense.text(), "meaning");
     }
 

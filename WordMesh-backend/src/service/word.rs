@@ -347,17 +347,181 @@ pub(crate) fn map_graph_error(err: GraphRepositoryError) -> AppError {
 mod tests {
     use super::*;
     use async_trait::async_trait;
-    use chrono::{DateTime, Utc};
+    use chrono::Utc;
+    use crate::domain::word::UserWord;
+    use crate::repository::graph::{GraphRepository, GraphResult, SenseLinkFilter, SenseWordLinkKind, WordLinkFilter, WordLinkKind};
+    use crate::repository::word::{SearchParams, SearchScope, SenseUpdate, UpsertUserWord, UserWordAggregate, WordRecord};
 
-    struct StubWordRepository;
+    // Helper function to create a test aggregate
+    fn create_test_aggregate(user_id: i64, user_word_id: i64, word_id: i64, text: &str) -> UserWordAggregate {
+        let canonical_key = CanonicalKey::new(text).unwrap();
+        let word = WordRecord {
+            id: word_id,
+            text: text.to_string(),
+            canonical_key: canonical_key.clone(),
+            created_at: Utc::now(),
+        };
+        let user_word = UserWord::from_parts(
+            Some(user_word_id),
+            user_id,
+            word_id,
+            vec![],
+            None,
+            vec![],
+            Utc::now(),
+        ).unwrap();
+        UserWordAggregate { word, user_word }
+    }
+
+    // Stub implementations for different test scenarios
+    struct SuccessWordRepository {
+        user_word_id: i64,
+        word_id: i64,
+        has_sense: bool,
+    }
 
     #[async_trait]
-    impl WordRepository for StubWordRepository {
+    impl WordRepository for SuccessWordRepository {
         async fn upsert_word(
             &self,
             _canonical: &CanonicalKey,
             _text: &str,
-        ) -> Result<crate::repository::word::WordRecord, WordRepositoryError> {
+        ) -> Result<WordRecord, WordRepositoryError> {
+            unimplemented!()
+        }
+
+        async fn upsert_user_word(
+            &self,
+            payload: UpsertUserWord,
+        ) -> Result<UserWordAggregate, WordRepositoryError> {
+            let canonical_key = payload.canonical_key.clone();
+            let word = WordRecord {
+                id: self.word_id,
+                text: payload.word_text,
+                canonical_key: canonical_key.clone(),
+                created_at: Utc::now(),
+            };
+            let user_word = UserWord::from_parts(
+                Some(self.user_word_id),
+                payload.user_id,
+                self.word_id,
+                payload.tags,
+                payload.note,
+                vec![],
+                Utc::now(),
+            ).unwrap();
+            Ok(UserWordAggregate { word, user_word })
+        }
+
+        async fn find_user_word(
+            &self,
+            _user_id: i64,
+            user_word_id: i64,
+        ) -> Result<Option<UserWordAggregate>, WordRepositoryError> {
+            if user_word_id == self.user_word_id {
+                let mut aggregate = create_test_aggregate(1, self.user_word_id, self.word_id, "hello");
+                if self.has_sense {
+                    let sense = UserSense::from_parts(
+                        Some(1),
+                        "greeting".to_string(),
+                        true,
+                        0,
+                        None,
+                        Utc::now(),
+                    )
+                    .map_err(WordRepositoryError::UserSense)?;
+                    aggregate.user_word.add_sense(sense)
+                        .map_err(WordRepositoryError::UserWord)?;
+                }
+                Ok(Some(aggregate))
+            } else {
+                Ok(None)
+            }
+        }
+
+        async fn remove_user_word(
+            &self,
+            _user_id: i64,
+            _user_word_id: i64,
+        ) -> Result<(), WordRepositoryError> {
+            Ok(())
+        }
+
+        async fn add_user_sense(
+            &self,
+            sense: NewUserSense,
+        ) -> Result<UserSense, WordRepositoryError> {
+            UserSense::from_parts(
+                Some(1),
+                sense.text,
+                sense.is_primary,
+                sense.sort_order,
+                sense.note,
+                Utc::now(),
+            )
+            .map_err(WordRepositoryError::UserSense)
+        }
+
+        async fn update_user_sense(
+            &self,
+            _user_id: i64,
+            _sense_id: i64,
+            _update: SenseUpdate,
+        ) -> Result<UserSense, WordRepositoryError> {
+            unimplemented!()
+        }
+
+        async fn remove_user_sense(
+            &self,
+            _user_id: i64,
+            _sense_id: i64,
+        ) -> Result<UserSense, WordRepositoryError> {
+            unimplemented!()
+        }
+
+        async fn find_sense_by_id(
+            &self,
+            _user_id: i64,
+            _sense_id: i64,
+        ) -> Result<Option<(UserSense, i64)>, WordRepositoryError> {
+            Ok(None)
+        }
+
+        async fn find_word_by_id(
+            &self,
+            _word_id: i64,
+        ) -> Result<Option<WordRecord>, WordRepositoryError> {
+            Ok(None)
+        }
+
+        async fn search(
+            &self,
+            params: SearchParams,
+        ) -> Result<Vec<UserWordAggregate>, WordRepositoryError> {
+            let mut results = vec![];
+            if params.query.is_empty() || params.query == "hello" {
+                results.push(create_test_aggregate(params.user_id, 1, 10, "hello"));
+            }
+            Ok(results)
+        }
+    }
+
+    struct ErrorWordRepository {
+        error_kind: ErrorKind,
+    }
+
+    enum ErrorKind {
+        InvalidNote,
+        TagLimitExceeded,
+    }
+
+    #[async_trait]
+    impl WordRepository for ErrorWordRepository {
+        async fn upsert_word(
+            &self,
+            _canonical: &CanonicalKey,
+            _text: &str,
+        ) -> Result<WordRecord, WordRepositoryError> {
             unimplemented!()
         }
 
@@ -365,7 +529,11 @@ mod tests {
             &self,
             _payload: UpsertUserWord,
         ) -> Result<UserWordAggregate, WordRepositoryError> {
-            Err(WordRepositoryError::UserWord(UserWordError::InvalidNote))
+            let error = match self.error_kind {
+                ErrorKind::InvalidNote => WordRepositoryError::UserWord(UserWordError::InvalidNote),
+                ErrorKind::TagLimitExceeded => WordRepositoryError::UserWord(UserWordError::TagLimitExceeded(100)),
+            };
+            Err(error)
         }
 
         async fn find_user_word(
@@ -395,7 +563,7 @@ mod tests {
             &self,
             _user_id: i64,
             _sense_id: i64,
-            _update: crate::repository::word::SenseUpdate,
+            _update: SenseUpdate,
         ) -> Result<UserSense, WordRepositoryError> {
             unimplemented!()
         }
@@ -419,7 +587,7 @@ mod tests {
         async fn find_word_by_id(
             &self,
             _word_id: i64,
-        ) -> Result<Option<crate::repository::word::WordRecord>, WordRepositoryError> {
+        ) -> Result<Option<WordRecord>, WordRepositoryError> {
             Ok(None)
         }
 
@@ -440,10 +608,9 @@ mod tests {
             _user_id: i64,
             _word_a_id: i64,
             _word_b_id: i64,
-            _kind: crate::repository::graph::WordLinkKind,
+            _kind: WordLinkKind,
             _note: Option<String>,
-        ) -> crate::repository::graph::GraphResult<crate::repository::graph::WordLinkRecord>
-        {
+        ) -> GraphResult<crate::repository::graph::WordLinkRecord> {
             unimplemented!()
         }
 
@@ -452,16 +619,15 @@ mod tests {
             _user_id: i64,
             _word_a_id: i64,
             _word_b_id: i64,
-            _kind: crate::repository::graph::WordLinkKind,
-        ) -> crate::repository::graph::GraphResult<()> {
+            _kind: WordLinkKind,
+        ) -> GraphResult<()> {
             Ok(())
         }
 
         async fn list_word_links(
             &self,
             _filter: WordLinkFilter,
-        ) -> crate::repository::graph::GraphResult<Vec<crate::repository::graph::WordLinkRecord>>
-        {
+        ) -> GraphResult<Vec<crate::repository::graph::WordLinkRecord>> {
             Ok(vec![])
         }
 
@@ -471,10 +637,9 @@ mod tests {
             _sense_id: i64,
             _source_word_id: i64,
             _target_word_id: i64,
-            _kind: crate::repository::graph::SenseWordLinkKind,
+            _kind: SenseWordLinkKind,
             _note: Option<String>,
-        ) -> crate::repository::graph::GraphResult<crate::repository::graph::SenseWordLinkRecord>
-        {
+        ) -> GraphResult<crate::repository::graph::SenseWordLinkRecord> {
             unimplemented!()
         }
 
@@ -483,30 +648,29 @@ mod tests {
             _user_id: i64,
             _sense_id: i64,
             _target_word_id: i64,
-            _kind: crate::repository::graph::SenseWordLinkKind,
-        ) -> crate::repository::graph::GraphResult<()> {
+            _kind: SenseWordLinkKind,
+        ) -> GraphResult<()> {
             Ok(())
         }
 
         async fn list_sense_word_links(
             &self,
-            _filter: crate::repository::graph::SenseLinkFilter,
-        ) -> crate::repository::graph::GraphResult<Vec<crate::repository::graph::SenseWordLinkRecord>>
-        {
+            _filter: SenseLinkFilter,
+        ) -> GraphResult<Vec<crate::repository::graph::SenseWordLinkRecord>> {
             Ok(vec![])
         }
 
         async fn remove_links_for_sense(
             &self,
             _sense_id: i64,
-        ) -> crate::repository::graph::GraphResult<()> {
+        ) -> GraphResult<()> {
             Ok(())
         }
 
         async fn upsert_node_word(
             &self,
             _word_id: i64,
-        ) -> crate::repository::graph::GraphResult<()> {
+        ) -> GraphResult<()> {
             Ok(())
         }
 
@@ -514,14 +678,72 @@ mod tests {
             &self,
             _sense_id: i64,
             _user_id: i64,
-        ) -> crate::repository::graph::GraphResult<()> {
+        ) -> GraphResult<()> {
             Ok(())
         }
     }
 
     #[tokio::test]
+    async fn add_to_my_network_success_without_first_sense() {
+        let repo = SuccessWordRepository {
+            user_word_id: 1,
+            word_id: 10,
+            has_sense: false,
+        };
+        let service = WordService::new(repo, StubGraphRepository);
+        let result = service
+            .add_to_my_network(
+                1,
+                AddWordInput {
+                    text: "hello".into(),
+                    tags: vec![],
+                    note: None,
+                    first_sense: None,
+                },
+            )
+            .await;
+        assert!(result.is_ok());
+        let aggregate = result.unwrap();
+        assert_eq!(aggregate.word.text, "hello");
+        assert_eq!(aggregate.user_word.id, Some(1));
+    }
+
+    #[tokio::test]
+    async fn add_to_my_network_success_with_first_sense() {
+        let repo = SuccessWordRepository {
+            user_word_id: 1,
+            word_id: 10,
+            has_sense: true,
+        };
+        let service = WordService::new(repo, StubGraphRepository);
+        let result = service
+            .add_to_my_network(
+                1,
+                AddWordInput {
+                    text: "hello".into(),
+                    tags: vec![],
+                    note: None,
+                    first_sense: Some(SenseInput {
+                        text: "greeting".into(),
+                        is_primary: true,
+                        sort_order: 0,
+                        note: None,
+                    }),
+                },
+            )
+            .await;
+        assert!(result.is_ok());
+        let aggregate = result.unwrap();
+        assert_eq!(aggregate.word.text, "hello");
+        assert!(!aggregate.user_word.senses().is_empty());
+    }
+
+    #[tokio::test]
     async fn add_to_my_network_maps_validation_errors() {
-        let service = WordService::new(StubWordRepository, StubGraphRepository);
+        let repo = ErrorWordRepository {
+            error_kind: ErrorKind::InvalidNote,
+        };
+        let service = WordService::new(repo, StubGraphRepository);
         let result = service
             .add_to_my_network(
                 1,
@@ -534,5 +756,176 @@ mod tests {
             )
             .await;
         assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn add_to_my_network_empty_text_error() {
+        let repo = SuccessWordRepository {
+            user_word_id: 1,
+            word_id: 10,
+            has_sense: false,
+        };
+        let service = WordService::new(repo, StubGraphRepository);
+        let result = service
+            .add_to_my_network(
+                1,
+                AddWordInput {
+                    text: "   ".into(), // Empty after normalization
+                    tags: vec![],
+                    note: None,
+                    first_sense: None,
+                },
+            )
+            .await;
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            AppError::BusinessError(BusinessError::Validation(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn add_to_my_network_too_many_tags_error() {
+        let repo = SuccessWordRepository {
+            user_word_id: 1,
+            word_id: 10,
+            has_sense: false,
+        };
+        let service = WordService::new(repo, StubGraphRepository);
+        let mut tags = vec![];
+        for i in 0..=crate::util::validation::MAX_TAGS {
+            tags.push(format!("tag{}", i));
+        }
+        let result = service
+            .add_to_my_network(
+                1,
+                AddWordInput {
+                    text: "hello".into(),
+                    tags,
+                    note: None,
+                    first_sense: None,
+                },
+            )
+            .await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn remove_from_my_network_success() {
+        let repo = SuccessWordRepository {
+            user_word_id: 1,
+            word_id: 10,
+            has_sense: false,
+        };
+        let service = WordService::new(repo, StubGraphRepository);
+        let result = service.remove_from_my_network(1, 1).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn remove_from_my_network_word_not_found() {
+        let repo = SuccessWordRepository {
+            user_word_id: 1,
+            word_id: 10,
+            has_sense: false,
+        };
+        let service = WordService::new(repo, StubGraphRepository);
+        let result = service.remove_from_my_network(1, 999).await;
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            AppError::BusinessError(BusinessError::Word(WordError::NotInNetwork))
+        ));
+    }
+
+    #[tokio::test]
+    async fn search_in_my_network_empty_query() {
+        let repo = SuccessWordRepository {
+            user_word_id: 1,
+            word_id: 10,
+            has_sense: false,
+        };
+        let service = WordService::new(repo, StubGraphRepository);
+        let result = service
+            .search_in_my_network(
+                1,
+                SearchOptions {
+                    query: String::new(),
+                    scope: SearchScope::Both,
+                    limit: 20,
+                    offset: 0,
+                },
+            )
+            .await;
+        assert!(result.is_ok());
+        let results = result.unwrap();
+        assert!(!results.is_empty());
+    }
+
+    #[tokio::test]
+    async fn search_in_my_network_with_query() {
+        let repo = SuccessWordRepository {
+            user_word_id: 1,
+            word_id: 10,
+            has_sense: false,
+        };
+        let service = WordService::new(repo, StubGraphRepository);
+        let result = service
+            .search_in_my_network(
+                1,
+                SearchOptions {
+                    query: "hello".into(),
+                    scope: SearchScope::Word,
+                    limit: 20,
+                    offset: 0,
+                },
+            )
+            .await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn search_in_my_network_pagination() {
+        let repo = SuccessWordRepository {
+            user_word_id: 1,
+            word_id: 10,
+            has_sense: false,
+        };
+        let service = WordService::new(repo, StubGraphRepository);
+        let result = service
+            .search_in_my_network(
+                1,
+                SearchOptions {
+                    query: String::new(),
+                    scope: SearchScope::Both,
+                    limit: 10,
+                    offset: 5,
+                },
+            )
+            .await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn search_in_my_network_limit_clamping() {
+        let repo = SuccessWordRepository {
+            user_word_id: 1,
+            word_id: 10,
+            has_sense: false,
+        };
+        let service = WordService::new(repo, StubGraphRepository);
+        // Test limit > 100 gets clamped to 100
+        let result = service
+            .search_in_my_network(
+                1,
+                SearchOptions {
+                    query: String::new(),
+                    scope: SearchScope::Both,
+                    limit: 200,
+                    offset: 0,
+                },
+            )
+            .await;
+        assert!(result.is_ok());
     }
 }
