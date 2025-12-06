@@ -6,12 +6,16 @@ import type { NetworkNode, LayoutAlgorithm } from '../types/network.types';
 
 /**
  * 力导向布局（简单实现）
+ * 适应更大的节点尺寸（单词节点20，其他节点15）
  */
 export function forceLayout(
   nodes: NetworkNode[],
   iterations: number = 100
 ): NetworkNode[] {
-  const k = Math.sqrt((800 * 600) / nodes.length);
+  // 根据节点大小调整间距：基础间距 = 最大节点大小 * 3
+  const maxNodeSize = Math.max(...nodes.map((n) => n.size || 15), 20);
+  const minDistance = maxNodeSize * 3;
+  const k = Math.sqrt((800 * 600) / nodes.length) * 1.5; // 增加基础间距系数
   const nodesWithPos = nodes.map((node) => ({
     ...node,
     x: node.x || Math.random() * 800,
@@ -27,10 +31,13 @@ export function forceLayout(
         const dx = nodesWithPos[i].x! - nodesWithPos[j].x!;
         const dy = nodesWithPos[i].y! - nodesWithPos[j].y!;
         const distance = Math.sqrt(dx * dx + dy * dy) || 1;
-        const force = (k * k) / distance;
+        
+        // 计算理想距离（基于节点大小）
+        const idealDistance = minDistance + (nodesWithPos[i].size || 15) + (nodesWithPos[j].size || 15);
+        const force = (k * k) / Math.max(distance, idealDistance * 0.5);
 
-        const fx = (dx / distance) * force * 0.01;
-        const fy = (dy / distance) * force * 0.01;
+        const fx = (dx / distance) * force * 0.015; // 稍微增加力的大小
+        const fy = (dy / distance) * force * 0.015;
 
         nodesWithPos[i].vx = (nodesWithPos[i].vx || 0) + fx;
         nodesWithPos[i].vy = (nodesWithPos[i].vy || 0) + fy;
@@ -53,11 +60,14 @@ export function forceLayout(
 
 /**
  * 圆形布局
+ * 适应更大的节点尺寸
  */
 export function circularLayout(nodes: NetworkNode[]): NetworkNode[] {
   const centerX = 400;
   const centerY = 300;
-  const radius = Math.min(300, Math.max(100, nodes.length * 5));
+  const maxNodeSize = Math.max(...nodes.map((n) => n.size || 15), 20);
+  const minRadius = maxNodeSize * 4; // 最小半径基于节点大小
+  const radius = Math.min(400, Math.max(minRadius, nodes.length * 8));
   const angleStep = (2 * Math.PI) / nodes.length;
 
   return nodes.map((node, index) => ({
@@ -69,15 +79,18 @@ export function circularLayout(nodes: NetworkNode[]): NetworkNode[] {
 
 /**
  * 层次布局
+ * 适应更大的节点尺寸
  */
 export function hierarchicalLayout(nodes: NetworkNode[]): NetworkNode[] {
   const words = nodes.filter((n) => n.type === 'word');
-  const senses = nodes.filter((n) => n.type === 'sense');
+  const otherNodes = nodes.filter((n) => n.type !== 'word');
+  const maxNodeSize = Math.max(...nodes.map((n) => n.size || 15), 20);
+  const minSpacing = maxNodeSize * 3;
 
   const wordY = 100;
-  const senseY = 400;
-  const wordSpacing = 600 / Math.max(1, words.length);
-  const senseSpacing = 600 / Math.max(1, senses.length);
+  const otherY = 400;
+  const wordSpacing = Math.max(minSpacing, 700 / Math.max(1, words.length));
+  const otherSpacing = Math.max(minSpacing, 700 / Math.max(1, otherNodes.length));
 
   const positioned: NetworkNode[] = [];
 
@@ -89,11 +102,11 @@ export function hierarchicalLayout(nodes: NetworkNode[]): NetworkNode[] {
     });
   });
 
-  senses.forEach((node, index) => {
+  otherNodes.forEach((node, index) => {
     positioned.push({
       ...node,
-      x: 100 + index * senseSpacing,
-      y: senseY,
+      x: 100 + index * otherSpacing,
+      y: otherY,
     });
   });
 

@@ -6,7 +6,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { NetworkGraph, NetworkNode, NetworkEdge } from '../types/network.types';
+import type { NetworkGraph, NetworkNode } from '../types/network.types';
 import { cn } from '@/lib/utils';
 
 interface NetworkCanvasProps {
@@ -71,14 +71,22 @@ export function NetworkCanvas({
 
   useEffect(() => {
     if (draggedNode) {
-      window.addEventListener('mousemove', handleMouseMove as any);
+      const mouseMoveHandler = (e: MouseEvent) => {
+        if (dragStart && svgRef.current) {
+          const rect = svgRef.current.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          onNodeDrag?.(draggedNode, x, y);
+        }
+      };
+      window.addEventListener('mousemove', mouseMoveHandler);
       window.addEventListener('mouseup', handleMouseUp);
       return () => {
-        window.removeEventListener('mousemove', handleMouseMove as any);
+        window.removeEventListener('mousemove', mouseMoveHandler);
         window.removeEventListener('mouseup', handleMouseUp);
       };
     }
-  }, [draggedNode, dragStart]);
+  }, [draggedNode, dragStart, onNodeDrag]);
 
   return (
     <div className={cn('relative overflow-hidden bg-transparent', className)}>
@@ -137,6 +145,24 @@ export function NetworkCanvas({
             const isConnectedToDragged =
               edge.source === draggedNode || edge.target === draggedNode;
 
+            // 根据连线类型调整样式
+            const baseStrokeWidth = edge.kind === 'belongs_to' ? 1.5 : 2;
+            const strokeWidth =
+              isConnectedToDragged
+                ? baseStrokeWidth + 1.5
+                : isConnectedToHovered || isConnectedToSelected
+                ? baseStrokeWidth + 0.5
+                : baseStrokeWidth;
+
+            const opacity =
+              isConnectedToDragged
+                ? 1
+                : isConnectedToHovered || isConnectedToSelected
+                ? 0.9
+                : edge.kind === 'belongs_to'
+                ? 0.5
+                : 0.6;
+
             return (
               <line
                 key={edge.id}
@@ -145,18 +171,11 @@ export function NetworkCanvas({
                 x2={targetNode.x}
                 y2={targetNode.y}
                 stroke={edge.color || '#666'}
-                strokeWidth={
-                  isConnectedToDragged ? 3 : isConnectedToHovered || isConnectedToSelected ? 2.5 : 2
-                }
+                strokeWidth={strokeWidth}
+                strokeDasharray={edge.strokeDasharray}
                 markerEnd="url(#arrowhead)"
                 className="transition-all duration-200 ease-out"
-                opacity={
-                  isConnectedToDragged
-                    ? 1
-                    : isConnectedToHovered || isConnectedToSelected
-                    ? 0.8
-                    : 0.4
-                }
+                opacity={opacity}
               />
             );
           })}
@@ -167,16 +186,16 @@ export function NetworkCanvas({
           {graph.nodes.map((node) => {
             if (node.x === undefined || node.y === undefined) return null;
 
-            const isHighlighted = (node as any).highlighted;
+            const isHighlighted = 'highlighted' in node && (node as { highlighted?: boolean }).highlighted;
             const isNodeSelected = selectedNode === node.id;
             const isNodeHovered = hoveredNode === node.id;
             const isNodeDragged = draggedNode === node.id;
-            const nodeSize = node.size || 10;
+            const nodeSize = node.size || 15;
             
             // 动态计算节点大小和样式
             const baseRadius = nodeSize;
-            const hoverRadius = baseRadius + 2;
-            const selectedRadius = baseRadius + 4;
+            const hoverRadius = baseRadius + 3;
+            const selectedRadius = baseRadius + 5;
             const currentRadius = isNodeDragged
               ? selectedRadius
               : isNodeSelected
@@ -235,9 +254,9 @@ export function NetworkCanvas({
                 {/* 节点标签 */}
                 <text
                   x={node.x}
-                  y={node.y + currentRadius + 18}
+                  y={node.y + currentRadius + 20}
                   textAnchor="middle"
-                  fontSize={isNodeHovered || isNodeSelected ? '13' : '12'}
+                  fontSize={isNodeHovered || isNodeSelected ? '14' : '13'}
                   fill="currentColor"
                   className="pointer-events-none select-none transition-all duration-200"
                   fontWeight={isNodeSelected ? 'bold' : 'normal'}

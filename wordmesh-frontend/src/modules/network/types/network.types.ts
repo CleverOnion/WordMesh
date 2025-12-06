@@ -3,7 +3,7 @@
  */
 
 // 节点类型
-export type NodeType = 'word' | 'sense';
+export type NodeType = 'word' | 'sense' | 'sense-group' | 'word-link-group';
 
 // 网络节点
 export interface NetworkNode {
@@ -19,6 +19,10 @@ export interface NetworkNode {
   fy?: number | null;
   size?: number;
   color?: string;
+  expanded?: boolean;
+  parentId?: string;
+  // 用于关联根节点，存储关联类型
+  linkKind?: string;
 }
 
 // 网络边（关联）
@@ -30,6 +34,7 @@ export interface NetworkEdge {
   kind: string;
   label?: string;
   color?: string;
+  strokeDasharray?: string;
 }
 
 // 网络图数据

@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { NetworkCanvas, NetworkControls, useNetworkGraph, buildNetworkGraph } from '@/modules/network';
 import { AnimatedGridBackground } from '@/modules/network/components/AnimatedGridBackground';
 import { useWordList } from '@/modules/word';
@@ -22,13 +22,34 @@ import type { NetworkNode } from '@/modules/network';
 
 export default function NetworkPage() {
   const { words = [], isLoading: wordsLoading } = useWordList();
-  const [selectedWordId, setSelectedWordId] = useState<number | null>(null);
   
-  // 获取关联数据
-  const { links: wordLinks } = useAssociationList('word', selectedWordId || 0);
+  // 获取关联数据（获取所有关联，不限制特定单词）
+  const { links: wordLinks } = useAssociationList('word', 0);
   const { links: senseWordLinks } = useAssociationList('sense', 0);
 
-  const networkGraph = useNetworkGraph();
+  const filteredWordLinks = useMemo(
+    () =>
+      wordLinks.filter(
+        (link): link is import('@/modules/association').WordLinkRecord =>
+          'word_a_id' in link
+      ),
+    [wordLinks]
+  );
+  const filteredSenseWordLinks = useMemo(
+    () =>
+      senseWordLinks.filter(
+        (link): link is import('@/modules/association').SenseWordLinkRecord =>
+          'sense_id' in link
+      ),
+    [senseWordLinks]
+  );
+
+  const networkGraph = useNetworkGraph(
+    undefined,
+    words,
+    filteredWordLinks,
+    filteredSenseWordLinks
+  );
   const [selectedNode, setSelectedNode] = useState<NetworkNode | null>(null);
 
   // 抽屉状态
@@ -42,19 +63,19 @@ export default function NetworkPage() {
     if (words.length > 0) {
       const graph = buildNetworkGraph(
         words,
-        wordLinks.filter((link): link is import('@/modules/association').WordLinkRecord => 
-          'word_a_id' in link
-        ),
-        senseWordLinks.filter((link): link is import('@/modules/association').SenseWordLinkRecord => 
-          'sense_id' in link
-        )
+        filteredWordLinks,
+        filteredSenseWordLinks
       );
       networkGraph.setGraph(graph);
       networkGraph.applyLayout('force');
     }
-  }, [words, wordLinks, senseWordLinks, networkGraph.setGraph, networkGraph.applyLayout]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [words, filteredWordLinks, filteredSenseWordLinks]);
 
   const handleNodeClick = (node: NetworkNode) => {
+    // 切换节点展开/折叠
+    networkGraph.toggleNodeExpansion(node.id);
+    // 可选：同时显示节点详情
     setSelectedNode(node);
     setIsNodeDetailOpen(true);
   };
