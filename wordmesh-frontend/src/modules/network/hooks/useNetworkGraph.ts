@@ -5,24 +5,32 @@
 
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import type { NetworkGraph, NetworkNode, NetworkEdge, LayoutAlgorithm } from '../types/network.types';
 import { applyLayout } from '../utils/graphLayout';
 
 export function useNetworkGraph(initialGraph?: NetworkGraph) {
   const [graph, setGraph] = useState<NetworkGraph>(initialGraph || { nodes: [], edges: [] });
+  const graphRef = useRef(graph);
   const [layout, setLayout] = useState<LayoutAlgorithm>('force');
   const [selectedNode, setSelectedNode] = useState<NetworkNode | null>(null);
   const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(new Set());
+
+  // 保持 ref 与 state 同步
+  useEffect(() => {
+    graphRef.current = graph;
+  }, [graph]);
 
   // 应用布局
   const applyLayoutToGraph = useCallback(
     (algorithm: LayoutAlgorithm) => {
       setLayout(algorithm);
-      const laidOutNodes = applyLayout(graph.nodes, algorithm);
-      setGraph({ ...graph, nodes: laidOutNodes });
+      setGraph((prev) => {
+        const laidOutNodes = applyLayout(prev.nodes, algorithm);
+        return { ...prev, nodes: laidOutNodes };
+      });
     },
-    [graph]
+    []
   );
 
   // 选择节点
@@ -33,18 +41,19 @@ export function useNetworkGraph(initialGraph?: NetworkGraph) {
       return;
     }
 
-    const node = graph.nodes.find((n) => n.id === nodeId);
+    const currentGraph = graphRef.current;
+    const node = currentGraph.nodes.find((n) => n.id === nodeId);
     if (node) {
       setSelectedNode(node);
       // 高亮相关节点
       const related = new Set<string>([nodeId]);
-      graph.edges.forEach((edge) => {
+      currentGraph.edges.forEach((edge) => {
         if (edge.source === nodeId) related.add(edge.target);
         if (edge.target === nodeId) related.add(edge.source);
       });
       setHighlightedNodes(related);
     }
-  }, [graph]);
+  }, []);
 
   // 更新节点位置
   const updateNodePosition = useCallback((nodeId: string, x: number, y: number) => {

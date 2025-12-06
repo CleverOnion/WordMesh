@@ -39,7 +39,7 @@ export default function NetworkPage() {
       networkGraph.setGraph(graph);
       networkGraph.applyLayout('force');
     }
-  }, [words, wordLinks, senseWordLinks, networkGraph]);
+  }, [words, wordLinks, senseWordLinks, networkGraph.setGraph, networkGraph.applyLayout]);
 
   const handleNodeClick = (node: NetworkNode) => {
     setSelectedNode(node);
