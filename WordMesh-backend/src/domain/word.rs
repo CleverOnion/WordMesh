@@ -8,7 +8,7 @@ use crate::util::validation::{
     normalize_tags, validate_non_empty_text, validate_note,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct CanonicalKey(String);
 
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -43,7 +43,7 @@ fn normalize_canonical_text(input: &str) -> String {
     canonicalize(input).unwrap_or_default()
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct UserWord {
     pub id: Option<i64>,
     pub user_id: i64,
@@ -54,7 +54,7 @@ pub struct UserWord {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct UserSense {
     pub id: Option<i64>,
     text: String,

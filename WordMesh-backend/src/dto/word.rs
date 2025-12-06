@@ -222,3 +222,17 @@ pub enum LinkEndpointDto {
     Word,
     Sense,
 }
+
+#[derive(Debug, Deserialize, Validate)]
+pub struct DeleteWordLinkRequest {
+    pub word_a_id: i64,
+    pub word_b_id: i64,
+    pub kind: WordLinkKindDto,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+pub struct DeleteSenseWordLinkRequest {
+    pub sense_id: i64,
+    pub target_word_id: i64,
+    pub kind: SenseLinkKindDto,
+}

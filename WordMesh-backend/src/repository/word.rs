@@ -19,7 +19,7 @@ pub enum WordRepositoryError {
     Canonical(#[from] CanonicalKeyError),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct WordRecord {
     pub id: i64,
     pub text: String,
@@ -27,7 +27,7 @@ pub struct WordRecord {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct UserWordAggregate {
     pub word: WordRecord,
     pub user_word: UserWord,
@@ -115,6 +115,17 @@ pub trait WordRepository {
         user_id: i64,
         sense_id: i64,
     ) -> Result<UserSense, WordRepositoryError>;
+
+    async fn find_sense_by_id(
+        &self,
+        user_id: i64,
+        sense_id: i64,
+    ) -> Result<Option<(UserSense, i64)>, WordRepositoryError>;
+
+    async fn find_word_by_id(
+        &self,
+        word_id: i64,
+    ) -> Result<Option<WordRecord>, WordRepositoryError>;
 
     async fn search(
         &self,
@@ -507,6 +518,62 @@ impl WordRepository for PgWordRepository {
             row.try_get("created_at")?,
         )
         .map_err(WordRepositoryError::from)
+    }
+
+    async fn find_sense_by_id(
+        &self,
+        user_id: i64,
+        sense_id: i64,
+    ) -> Result<Option<(UserSense, i64)>, WordRepositoryError> {
+        let row = sqlx::query(
+            r#"
+            SELECT us.id, us.text, us.is_primary, us.sort_order, us.note, us.created_at, uw.word_id
+            FROM user_senses us
+            JOIN user_words uw ON uw.id = us.user_word_id
+            WHERE us.id = $1 AND uw.user_id = $2
+            "#,
+        )
+        .bind(sense_id)
+        .bind(user_id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        match row {
+            Some(row) => {
+                let sense = UserSense::from_parts(
+                    Some(row.try_get("id")?),
+                    row.try_get("text")?,
+                    row.try_get("is_primary")?,
+                    row.try_get("sort_order")?,
+                    row.try_get("note")?,
+                    row.try_get("created_at")?,
+                )?;
+                let word_id: i64 = row.try_get("word_id")?;
+                Ok(Some((sense, word_id)))
+            }
+            None => Ok(None),
+        }
+    }
+
+    async fn find_word_by_id(
+        &self,
+        word_id: i64,
+    ) -> Result<Option<WordRecord>, WordRepositoryError> {
+        let row = sqlx::query(
+            r#"
+            SELECT id, text, canonical_key, created_at
+            FROM words
+            WHERE id = $1
+            "#,
+        )
+        .bind(word_id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        match row {
+            Some(row) => Ok(Some(Self::map_word_row(&row)?)),
+            None => Ok(None),
+        }
     }
 
     async fn search(

@@ -13,15 +13,14 @@
   <component name="ChangeListManager">
     <list default="true" id="575917ed-07c7-4294-93d9-8d1d788b12b2" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/default.toml" beforeDir="false" afterPath="$PROJECT_DIR$/config/default.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/development.toml" beforeDir="false" afterPath="$PROJECT_DIR$/config/development.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/middleware/auth_guard.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/middleware/auth_guard.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
-  <component name="ExecutionTargetManager" SELECTED_TARGET="RsBuildProfile:dev" />
+  <component name="ExecutionTargetManager" SELECTED_TARGET="RsBuildProfile:test" />
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
   </component>
@@ -39,6 +38,7 @@
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
     &quot;Cargo.Run Wordmesh-backend.executor&quot;: &quot;Run&quot;,
+    &quot;Cargo.Test middleware::auth_guard::tests::guard_rejects_missing_token.executor&quot;: &quot;Run&quot;,
     &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
@@ -58,7 +58,7 @@
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Cargo.Test middleware::auth_guard::tests::guard_rejects_missing_token">
     <configuration name="Run Wordmesh-backend" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="buildProfileId" value="dev" />
       <option name="command" value="run --package Wordmesh-backend --bin Wordmesh-backend" />
@@ -79,8 +79,27 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
+    <configuration name="Test middleware::auth_guard::tests::guard_rejects_missing_token" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="buildProfileId" value="test" />
+      <option name="command" value="test --package Wordmesh-backend --bin Wordmesh-backend middleware::auth_guard::tests::guard_rejects_missing_token -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <envs />
+      <option name="emulateTerminal" value="true" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test middleware::auth_guard::tests::guard_rejects_missing_token" />
         <item itemvalue="Cargo.Run Wordmesh-backend" />
       </list>
     </recent_temporary>
@@ -100,6 +119,8 @@
       <workItem from="1758798377254" duration="2041000" />
       <workItem from="1758801555569" duration="2951000" />
       <workItem from="1758875440264" duration="3055000" />
+      <workItem from="1758968465978" duration="3878000" />
+      <workItem from="1759565529121" duration="37000" />
     </task>
     <servers />
   </component>

@@ -23,7 +23,7 @@ pub enum GraphRepositoryError {
     Business(#[from] BusinessError),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 pub enum WordLinkKind {
     SimilarForm,
     RootAffix,
@@ -46,7 +46,7 @@ impl WordLinkKind {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 pub enum SenseWordLinkKind {
     Synonym,
     Antonym,
@@ -72,7 +72,7 @@ impl SenseWordLinkKind {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct WordLinkRecord {
     pub link_id: String,
     pub user_id: i64,
@@ -83,7 +83,7 @@ pub struct WordLinkRecord {
     pub word_b_id: i64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct SenseWordLinkRecord {
     pub link_id: String,
     pub user_id: i64,

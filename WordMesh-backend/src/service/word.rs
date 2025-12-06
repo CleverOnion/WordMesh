@@ -408,6 +408,21 @@ mod tests {
             unimplemented!()
         }
 
+        async fn find_sense_by_id(
+            &self,
+            _user_id: i64,
+            _sense_id: i64,
+        ) -> Result<Option<(UserSense, i64)>, WordRepositoryError> {
+            Ok(None)
+        }
+
+        async fn find_word_by_id(
+            &self,
+            _word_id: i64,
+        ) -> Result<Option<crate::repository::word::WordRecord>, WordRepositoryError> {
+            Ok(None)
+        }
+
         async fn search(
             &self,
             _params: SearchParams,
