@@ -86,19 +86,30 @@ export function buildNetworkGraph(
 
   // 添加单词节点
   words.forEach((word) => {
-    nodes.push(wordToNode(word));
+    const wordNode = wordToNode(word);
+    nodes.push(wordNode);
 
-    // 添加义项节点
+    // 添加义项节点，并创建义项到单词的连线
     word.user_word.senses.forEach((sense) => {
       if (sense.id) {
-        nodes.push(
-          senseToNode(
-            sense.id,
-            sense.text,
-            word.word.id,
-            word.user_word.id || 0
-          )
+        const senseNode = senseToNode(
+          sense.id,
+          sense.text,
+          word.word.id,
+          word.user_word.id || 0
         );
+        nodes.push(senseNode);
+
+        // 创建义项节点到单词节点的连线
+        edges.push({
+          id: `sense-${sense.id}-to-word-${word.user_word.id}`,
+          source: senseNode.id,
+          target: wordNode.id,
+          type: 'sense-word',
+          kind: 'belongs_to',
+          label: '属于',
+          color: '#94a3b8', // 使用灰色表示归属关系
+        });
       }
     });
   });

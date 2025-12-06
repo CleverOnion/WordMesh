@@ -3,9 +3,10 @@ use std::sync::Arc;
 use tracing::instrument;
 use validator::Validate;
 
-use crate::dto::word::{AddWordRequest, SearchRequest};
+use crate::dto::word::{AddWordRequest, SearchRequest, AddSenseRequest, UpdateSenseRequest};
 use crate::middleware::{AuthGuard, AuthenticatedUser};
 use crate::service::word::WordService;
+use crate::service::sense::SenseService;
 use crate::repository::word::WordRepository;
 use crate::repository::graph::GraphRepository;
 use crate::util::{AppError, ResponseBuilder};
@@ -16,7 +17,8 @@ where
     W: WordRepository + Send + Sync + 'static,
     G: GraphRepository + Send + Sync + 'static,
 {
-    service: Arc<WordService<W, G>>,
+    word_service: Arc<WordService<W, G>>,
+    sense_service: Arc<SenseService<W, G>>,
     auth_guard: AuthGuard,
 }
 
@@ -25,9 +27,10 @@ where
     W: WordRepository + Send + Sync + 'static,
     G: GraphRepository + Send + Sync + 'static,
 {
-    pub fn new(service: WordService<W, G>, auth_guard: AuthGuard) -> Self {
+    pub fn new(word_service: WordService<W, G>, sense_service: SenseService<W, G>, auth_guard: AuthGuard) -> Self {
         Self {
-            service: Arc::new(service),
+            word_service: Arc::new(word_service),
+            sense_service: Arc::new(sense_service),
             auth_guard,
         }
     }
@@ -40,8 +43,14 @@ where
                 .service(
                     web::scope("/my")
                         .wrap(guard)
+                        // 字面量路径必须优先注册
                         .route("", web::post().to(Self::add_to_my_network))
                         .route("/search", web::get().to(Self::search_my_network))
+                        // 更具体的路径优先
+                        .route("/{user_word_id}/senses", web::post().to(Self::add_sense))
+                        .route("/senses/{sense_id}", web::patch().to(Self::update_sense))
+                        .route("/senses/{sense_id}", web::delete().to(Self::remove_sense))
+                        // 参数路径最后注册
                         .route("/{user_word_id}", web::delete().to(Self::remove_from_my_network)),
                 ),
         );
@@ -65,7 +74,7 @@ where
 
         let input = request.into();
         let result = controller
-            .service
+            .word_service
             .add_to_my_network(identity.user_id, input)
             .await?;
         ResponseBuilder::ok(result)
@@ -89,7 +98,7 @@ where
 
         let options = request.into_options();
         let results = controller
-            .service
+            .word_service
             .search_in_my_network(identity.user_id, options)
             .await?;
         ResponseBuilder::ok(results)
@@ -104,11 +113,81 @@ where
         let user_word_id = path.into_inner();
         
         controller
-            .service
+            .word_service
             .remove_from_my_network(identity.user_id, user_word_id)
             .await?;
         
         ResponseBuilder::ok(())
+    }
+
+    // Sense 相关路由处理函数
+    #[instrument(skip(controller, payload, identity, path))]
+    async fn add_sense(
+        controller: web::Data<WordController<W, G>>,
+        path: web::Path<i64>,
+        payload: web::Json<AddSenseRequest>,
+        identity: AuthenticatedUser,
+    ) -> Result<HttpResponse, AppError> {
+        let user_word_id = path.into_inner();
+        
+        // Validate input
+        let request = payload.into_inner();
+        request
+            .validate()
+            .map_err(|err| {
+                AppError::from(crate::util::error::BusinessError::Validation(
+                    validation_errors(err),
+                ))
+            })?;
+
+        let input = request.into();
+        let result = controller
+            .sense_service
+            .add_sense(identity.user_id, user_word_id, input)
+            .await?;
+        ResponseBuilder::ok(result)
+    }
+
+    #[instrument(skip(controller, payload, identity, path))]
+    async fn update_sense(
+        controller: web::Data<WordController<W, G>>,
+        path: web::Path<i64>,
+        payload: web::Json<UpdateSenseRequest>,
+        identity: AuthenticatedUser,
+    ) -> Result<HttpResponse, AppError> {
+        let sense_id = path.into_inner();
+        
+        // Validate input
+        let request = payload.into_inner();
+        request
+            .validate()
+            .map_err(|err| {
+                AppError::from(crate::util::error::BusinessError::Validation(
+                    validation_errors(err),
+                ))
+            })?;
+
+        let input = request.into();
+        let result = controller
+            .sense_service
+            .update_sense(identity.user_id, sense_id, input)
+            .await?;
+        ResponseBuilder::ok(result)
+    }
+
+    #[instrument(skip(controller, identity, path))]
+    async fn remove_sense(
+        controller: web::Data<WordController<W, G>>,
+        path: web::Path<i64>,
+        identity: AuthenticatedUser,
+    ) -> Result<HttpResponse, AppError> {
+        let sense_id = path.into_inner();
+        
+        let result = controller
+            .sense_service
+            .remove_sense(identity.user_id, sense_id)
+            .await?;
+        ResponseBuilder::ok(result)
     }
 
 }

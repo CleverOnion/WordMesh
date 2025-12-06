@@ -17,14 +17,12 @@ mod util;
 use config::Settings;
 use controller::assoc::AssocController;
 use controller::auth::AuthController;
-use controller::sense::SenseController;
 use controller::word::WordController;
 use middleware::{AuthGuard, RequestId};
 use repository::{PgUserRepository, PgWordRepository, Neo4jGraphRepository};
 use service::assoc::AssocService;
 use service::auth::AuthService;
-use service::sense::SenseService;
-use service::word::WordService;
+use service::{sense::SenseService, word::WordService};
 use util::{AppError, ResponseBuilder};
 use util::token::TokenConfig;
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey};
@@ -59,7 +57,6 @@ async fn main() -> Result<(), AppError> {
     HttpServer::new(move || {
         let auth_controller = web::Data::new(build_auth_controller(shared_settings.clone()));
         let word_controller = web::Data::new(build_word_controller(shared_settings.clone(), &auth_controller));
-        let sense_controller = web::Data::new(build_sense_controller(shared_settings.clone(), &auth_controller));
         let assoc_controller = web::Data::new(build_assoc_controller(shared_settings.clone(), &auth_controller));
         App::new()
             .wrap(Cors::permissive())
@@ -72,7 +69,6 @@ async fn main() -> Result<(), AppError> {
                     .route("/health", web::get().to(health_check))
                     .configure(|cfg| AuthController::configure(cfg, auth_controller.clone()))
                     .configure(|cfg| WordController::configure(cfg, word_controller.clone()))
-                    .configure(|cfg| SenseController::configure(cfg, sense_controller.clone()))
                     .configure(|cfg| AssocController::configure(cfg, assoc_controller.clone())),
             )
     })
@@ -128,46 +124,11 @@ fn build_word_controller(
         Duration::from_secs(neo4j_settings.query_timeout_seconds),
     );
 
-    // Create WordService
-    let word_service = WordService::new(word_repository, graph_repository);
-
-    WordController::new(word_service, auth_guard)
-}
-
-fn build_sense_controller(
-    settings: Arc<Settings>,
-    _auth_controller: &AuthController<PgUserRepository>,
-) -> SenseController<PgWordRepository, Neo4jGraphRepository> {
-    // Build token config from settings for AuthGuard
-    let jwt_settings = &settings.auth.jwt;
-    let token_config = build_token_config_from_settings(jwt_settings)
-        .expect("failed to build token config");
-    let auth_guard = AuthGuard::new(std::sync::Arc::new(token_config));
-
-    // Initialize PostgreSQL repository
-    let db_settings = &settings.database;
-    let pool = sqlx::postgres::PgPoolOptions::new()
-        .max_connections(db_settings.pool_size)
-        .connect_lazy_with(db_settings.connect_options());
-    let word_repository = PgWordRepository::new(pool);
-
-    // Initialize Neo4j repository
-    let neo4j_settings = &settings.neo4j;
-    let graph = neo4rs::Graph::new(
-        &neo4j_settings.uri,
-        neo4j_settings.username.clone(),
-        neo4j_settings.password.clone(),
-    )
-    .expect("failed to initialize Neo4j graph");
-    let graph_repository = Neo4jGraphRepository::new(
-        graph,
-        Duration::from_secs(neo4j_settings.query_timeout_seconds),
-    );
-
-    // Create SenseService
+    // Create WordService and SenseService
+    let word_service = WordService::new(word_repository.clone(), graph_repository.clone());
     let sense_service = SenseService::new(word_repository, graph_repository);
 
-    SenseController::new(sense_service, auth_guard)
+    WordController::new(word_service, sense_service, auth_guard)
 }
 
 fn build_assoc_controller(

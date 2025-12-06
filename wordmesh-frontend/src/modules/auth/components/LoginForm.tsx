@@ -53,7 +53,7 @@ export function LoginForm() {
     const result = await login(values);
 
     if (result.success) {
-      router.push('/dashboard');
+      router.push('/network');
     } else {
       // 设置字段级错误（仅用于表单验证错误）
       if (result.fieldErrors) {
