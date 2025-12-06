@@ -13,6 +13,8 @@ interface WordListProps {
   isLoading?: boolean;
   onRemove?: (userWordId: number) => void;
   onAddSense?: (userWordId: number) => void;
+  onSelect?: (word: UserWordAggregate) => void;
+  selectedWordId?: number | null;
   emptyMessage?: string;
 }
 
@@ -21,6 +23,8 @@ export function WordList({
   isLoading = false,
   onRemove,
   onAddSense,
+  onSelect,
+  selectedWordId,
   emptyMessage = '暂无单词',
 }: WordListProps) {
   if (isLoading) {
@@ -41,14 +45,24 @@ export function WordList({
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="space-y-2">
       {words.map((word) => (
-        <WordCard
+        <div
           key={word.user_word.id || word.word.id}
-          word={word}
-          onRemove={onRemove}
-          onAddSense={onAddSense}
-        />
+          onClick={() => onSelect?.(word)}
+          className={onSelect ? 'cursor-pointer' : ''}
+        >
+          <WordCard
+            word={word}
+            onRemove={onRemove}
+            onAddSense={onAddSense}
+            className={
+              selectedWordId === word.user_word.id
+                ? 'border-primary border-2'
+                : ''
+            }
+          />
+        </div>
       ))}
     </div>
   );
