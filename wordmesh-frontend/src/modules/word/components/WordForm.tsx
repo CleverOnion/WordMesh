@@ -174,6 +174,7 @@ export function WordForm({ onSubmit, onCancel, isLoading = false }: WordFormProp
                   className="transition-all duration-200 focus:scale-[1.01] focus:shadow-md resize-none"
                   rows={3}
                   {...field}
+                  value={field.value || ''}
                 />
               </FormControl>
               <FormMessage className="animate-in slide-in-from-top-1 duration-200" />
@@ -195,6 +196,7 @@ export function WordForm({ onSubmit, onCancel, isLoading = false }: WordFormProp
                     placeholder="请输入义项定义"
                     className="transition-all duration-200 focus:scale-[1.02] focus:shadow-md"
                     {...field}
+                    value={field.value || ''}
                   />
                 </FormControl>
                 <FormMessage className="animate-in slide-in-from-top-1 duration-200" />
@@ -234,6 +236,7 @@ export function WordForm({ onSubmit, onCancel, isLoading = false }: WordFormProp
                     className="transition-all duration-200 focus:scale-[1.01] focus:shadow-md resize-none"
                     rows={2}
                     {...field}
+                    value={field.value || ''}
                   />
                 </FormControl>
                 <FormMessage className="animate-in slide-in-from-top-1 duration-200" />

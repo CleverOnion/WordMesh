@@ -5,7 +5,7 @@
 'use client';
 
 import { ProfileCard } from '@/modules/auth';
-import { WordList, useWordList } from '@/modules/word';
+import { WordList, useWordList, useWord } from '@/modules/word';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookOpen, Network, Search, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import { WordForm } from '@/modules/word';
 
 export default function DashboardPage() {
   const { words = [], isLoading, refresh } = useWordList();
+  const { addWord, isLoading: isAddingWord } = useWord();
   const [showAddWord, setShowAddWord] = useState(false);
 
   return (
@@ -131,11 +132,15 @@ export default function DashboardPage() {
           <CardContent>
             <WordForm
               onSubmit={async (data) => {
-                await refresh();
-                setShowAddWord(false);
-                return { success: true };
+                const result = await addWord(data);
+                if (result.success) {
+                  await refresh();
+                  setShowAddWord(false);
+                }
+                return result;
               }}
               onCancel={() => setShowAddWord(false)}
+              isLoading={isAddingWord}
             />
           </CardContent>
         </Card>

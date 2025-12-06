@@ -5,7 +5,7 @@
 'use client';
 
 import { useState } from 'react';
-import { WordList, WordForm, WordSearch, useWordList } from '@/modules/word';
+import { WordList, WordForm, WordSearch, useWordList, useWord } from '@/modules/word';
 import { SenseList, SenseForm, useSense } from '@/modules/sense';
 import { NoteCard } from '@/modules/note';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,7 @@ import type { UserWordAggregate } from '@/modules/word';
 
 export default function WordsPage() {
   const { words = [], isLoading, refresh, search } = useWordList();
+  const { addWord, isLoading: isAddingWord } = useWord();
   const { addSense } = useSense();
   const [selectedWord, setSelectedWord] = useState<UserWordAggregate | null>(null);
   const [showAddWord, setShowAddWord] = useState(false);
@@ -194,11 +195,15 @@ export default function WordsPage() {
           <CardContent>
             <WordForm
               onSubmit={async (data) => {
-                await refresh();
-                setShowAddWord(false);
-                return { success: true };
+                const result = await addWord(data);
+                if (result.success) {
+                  await refresh();
+                  setShowAddWord(false);
+                }
+                return result;
               }}
               onCancel={() => setShowAddWord(false)}
+              isLoading={isAddingWord}
             />
           </CardContent>
         </Card>

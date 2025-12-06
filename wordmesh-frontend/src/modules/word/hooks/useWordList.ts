@@ -84,12 +84,49 @@ export function useWordList(initialQuery?: string) {
     setPagination((prev) => ({ ...prev, pageSize, page: 1 }));
   }, []);
 
-  // 初始加载
+  // 初始加载和分页变化时重新加载
   useEffect(() => {
-    if (query) {
-      search();
-    }
-  }, [pagination.page, pagination.pageSize]);
+    let cancelled = false;
+
+    const loadData = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await wordApi.searchMyNetwork({
+          q: query,
+          scope: scope,
+          limit: pagination.pageSize,
+          offset: (pagination.page - 1) * pagination.pageSize,
+        });
+
+        if (!cancelled) {
+          setWords(response.data.items);
+          setPagination({
+            total: response.data.total,
+            page: response.data.page,
+            pageSize: response.data.pageSize,
+            totalPages: response.data.totalPages,
+          });
+        }
+      } catch (err) {
+        if (!cancelled) {
+          const errorMessage = getErrorMessage(err);
+          setError(errorMessage);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [query, scope, pagination.page, pagination.pageSize]);
 
   return {
     words,
