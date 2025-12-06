@@ -1,4 +1,5 @@
 use actix_web::{App, HttpServer, middleware::Logger, web};
+use actix_cors::Cors;
 use std::sync::Arc;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -61,6 +62,7 @@ async fn main() -> Result<(), AppError> {
         let sense_controller = web::Data::new(build_sense_controller(shared_settings.clone(), &auth_controller));
         let assoc_controller = web::Data::new(build_assoc_controller(shared_settings.clone(), &auth_controller));
         App::new()
+            .wrap(Cors::permissive())
             .wrap(Logger::default())
             .wrap(RequestId)
             .app_data(web::Data::new(shared_settings.clone()))
