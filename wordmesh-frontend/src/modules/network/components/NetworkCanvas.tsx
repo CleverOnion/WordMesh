@@ -29,6 +29,8 @@ export function NetworkCanvas({
   const svgRef = useRef<SVGSVGElement>(null);
   const [draggedNode, setDraggedNode] = useState<string | null>(null);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
+  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
   // 处理节点拖拽
   const handleMouseDown = (node: NetworkNode, e: React.MouseEvent) => {
@@ -57,6 +59,16 @@ export function NetworkCanvas({
     setDragStart(null);
   };
 
+  const handleNodeClick = (node: NetworkNode, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedNode(node.id);
+    onNodeClick?.(node);
+  };
+
+  const handleNodeHover = (nodeId: string | null) => {
+    setHoveredNode(nodeId);
+  };
+
   useEffect(() => {
     if (draggedNode) {
       window.addEventListener('mousemove', handleMouseMove as any);
@@ -69,7 +81,7 @@ export function NetworkCanvas({
   }, [draggedNode, dragStart]);
 
   return (
-    <div className={cn('relative border rounded-lg overflow-hidden bg-background', className)}>
+    <div className={cn('relative overflow-hidden bg-transparent', className)}>
       <svg
         ref={svgRef}
         width={width}
@@ -77,6 +89,7 @@ export function NetworkCanvas({
         className="w-full h-full"
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onClick={() => setSelectedNode(null)}
       >
         <defs>
           <marker
@@ -89,6 +102,22 @@ export function NetworkCanvas({
           >
             <polygon points="0 0, 10 3, 0 6" fill="#666" />
           </marker>
+          {/* 节点发光效果 */}
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          {/* 悬停发光效果 */}
+          <filter id="hover-glow">
+            <feGaussianBlur stdDeviation="5" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
         </defs>
 
         {/* 渲染边 */}
@@ -101,6 +130,13 @@ export function NetworkCanvas({
               return null;
             }
 
+            const isConnectedToHovered =
+              edge.source === hoveredNode || edge.target === hoveredNode;
+            const isConnectedToSelected =
+              edge.source === selectedNode || edge.target === selectedNode;
+            const isConnectedToDragged =
+              edge.source === draggedNode || edge.target === draggedNode;
+
             return (
               <line
                 key={edge.id}
@@ -109,10 +145,18 @@ export function NetworkCanvas({
                 x2={targetNode.x}
                 y2={targetNode.y}
                 stroke={edge.color || '#666'}
-                strokeWidth={2}
+                strokeWidth={
+                  isConnectedToDragged ? 3 : isConnectedToHovered || isConnectedToSelected ? 2.5 : 2
+                }
                 markerEnd="url(#arrowhead)"
-                className="transition-opacity duration-200"
-                opacity={edge.source === draggedNode || edge.target === draggedNode ? 1 : 0.6}
+                className="transition-all duration-200 ease-out"
+                opacity={
+                  isConnectedToDragged
+                    ? 1
+                    : isConnectedToHovered || isConnectedToSelected
+                    ? 0.8
+                    : 0.4
+                }
               />
             );
           })}
@@ -124,32 +168,84 @@ export function NetworkCanvas({
             if (node.x === undefined || node.y === undefined) return null;
 
             const isHighlighted = (node as any).highlighted;
-            const isSelected = (node as any).selected;
+            const isNodeSelected = selectedNode === node.id;
+            const isNodeHovered = hoveredNode === node.id;
+            const isNodeDragged = draggedNode === node.id;
             const nodeSize = node.size || 10;
+            
+            // 动态计算节点大小和样式
+            const baseRadius = nodeSize;
+            const hoverRadius = baseRadius + 2;
+            const selectedRadius = baseRadius + 4;
+            const currentRadius = isNodeDragged
+              ? selectedRadius
+              : isNodeSelected
+              ? selectedRadius
+              : isNodeHovered
+              ? hoverRadius
+              : baseRadius;
+
+            const nodeColor = node.color || '#3b82f6';
+            const strokeColor = isNodeSelected
+              ? '#fbbf24'
+              : isNodeHovered
+              ? '#60a5fa'
+              : isHighlighted
+              ? '#f59e0b'
+              : 'transparent';
+            const strokeWidth = isNodeSelected ? 3 : isNodeHovered ? 2 : isHighlighted ? 2 : 0;
 
             return (
               <g
                 key={node.id}
-                className="cursor-pointer transition-all duration-200"
-                onClick={() => onNodeClick?.(node)}
+                className="cursor-pointer transition-all duration-200 ease-out gpu-accelerated"
+                onClick={(e) => handleNodeClick(node, e)}
                 onMouseDown={(e) => handleMouseDown(node, e)}
+                onMouseEnter={() => handleNodeHover(node.id)}
+                onMouseLeave={() => handleNodeHover(null)}
               >
+                {/* 节点外圈发光效果 */}
+                {(isNodeHovered || isNodeSelected) && (
+                  <circle
+                    cx={node.x}
+                    cy={node.y}
+                    r={currentRadius + 4}
+                    fill="none"
+                    stroke={strokeColor}
+                    strokeWidth={1}
+                    opacity={0.3}
+                    className="transition-all duration-200"
+                    filter={isNodeHovered ? 'url(#hover-glow)' : 'url(#glow)'}
+                  />
+                )}
+                {/* 节点主体 */}
                 <circle
                   cx={node.x}
                   cy={node.y}
-                  r={isSelected ? nodeSize + 3 : nodeSize}
-                  fill={node.color || '#3b82f6'}
-                  stroke={isSelected ? '#fbbf24' : isHighlighted ? '#f59e0b' : 'transparent'}
-                  strokeWidth={isSelected ? 3 : isHighlighted ? 2 : 0}
-                  className="hover:opacity-80"
+                  r={currentRadius}
+                  fill={nodeColor}
+                  stroke={strokeColor}
+                  strokeWidth={strokeWidth}
+                  className="transition-all duration-200 ease-out"
+                  style={{
+                    filter: isNodeHovered || isNodeSelected ? 'url(#glow)' : 'none',
+                    transformOrigin: `${node.x}px ${node.y}px`,
+                  }}
                 />
+                {/* 节点标签 */}
                 <text
                   x={node.x}
-                  y={node.y + nodeSize + 15}
+                  y={node.y + currentRadius + 18}
                   textAnchor="middle"
-                  fontSize="12"
+                  fontSize={isNodeHovered || isNodeSelected ? '13' : '12'}
                   fill="currentColor"
-                  className="pointer-events-none select-none"
+                  className="pointer-events-none select-none transition-all duration-200"
+                  fontWeight={isNodeSelected ? 'bold' : 'normal'}
+                  style={{
+                    textShadow: isNodeHovered || isNodeSelected
+                      ? '0 1px 2px rgba(0,0,0,0.1)'
+                      : 'none',
+                  }}
                 >
                   {node.label}
                 </text>

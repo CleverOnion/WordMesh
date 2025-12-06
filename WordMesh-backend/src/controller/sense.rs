@@ -40,15 +40,9 @@ where
                 .service(
                     web::scope("/my")
                         .wrap(guard)
-                        .service(
-                            web::resource("/{user_word_id}/senses")
-                                .route(web::post().to(Self::add_sense)),
-                        )
-                        .service(
-                            web::resource("/senses/{sense_id}")
-                                .route(web::patch().to(Self::update_sense))
-                                .route(web::delete().to(Self::remove_sense)),
-                        ),
+                        .route("/{user_word_id}/senses", web::post().to(Self::add_sense))
+                        .route("/senses/{sense_id}", web::patch().to(Self::update_sense))
+                        .route("/senses/{sense_id}", web::delete().to(Self::remove_sense)),
                 ),
         );
     }

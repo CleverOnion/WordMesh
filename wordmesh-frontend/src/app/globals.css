@@ -146,6 +146,86 @@
     }
   }
 
+  /* 抽屉滑入动画 */
+  @keyframes drawer-slide-in-right {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes drawer-slide-in-left {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes drawer-slide-in-top {
+    from {
+      transform: translateY(-100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes drawer-slide-in-bottom {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  /* 遮罩淡入动画 */
+  @keyframes backdrop-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* 按钮点击反馈动画 */
+  @keyframes button-press {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(0.95);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  /* 悬停发光效果 */
+  @keyframes glow {
+    0%, 100% {
+      box-shadow: 0 0 5px rgba(59, 130, 246, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
+    }
+  }
+
+  /* 脉冲动画 */
+  @keyframes pulse-glow {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+
   /* 工具类 */
   .animate-in {
     animation-duration: 0.3s;
@@ -175,6 +255,57 @@
 
   .scale-in {
     animation-name: scale-in;
+  }
+
+  /* 抽屉动画 */
+  .drawer-slide-in-right {
+    animation: drawer-slide-in-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .drawer-slide-in-left {
+    animation: drawer-slide-in-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .drawer-slide-in-top {
+    animation: drawer-slide-in-top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .drawer-slide-in-bottom {
+    animation: drawer-slide-in-bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .backdrop-fade-in {
+    animation: backdrop-fade-in 0.2s ease-out;
+  }
+
+  /* 交互效果 */
+  .button-press {
+    animation: button-press 0.2s ease-out;
+  }
+
+  /* 平滑过渡 */
+  .transition-smooth {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* GPU 加速 */
+  .gpu-accelerated {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+
+  /* 触摸优化 */
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* 移动端优化 */
+  @media (max-width: 640px) {
+    .drawer-slide-in-right,
+    .drawer-slide-in-left {
+      animation-duration: 0.25s;
+    }
   }
 }
 

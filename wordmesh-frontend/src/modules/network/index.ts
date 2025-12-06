@@ -6,6 +6,7 @@
 export { NetworkCanvas } from './components/NetworkCanvas';
 export { NetworkControls } from './components/NetworkControls';
 export { NetworkNodeDetail } from './components/NetworkNode';
+export { AnimatedGridBackground } from './components/AnimatedGridBackground';
 
 // Hooks
 export { useNetworkGraph } from './hooks/useNetworkGraph';
