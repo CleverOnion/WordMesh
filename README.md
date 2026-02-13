@@ -67,7 +67,15 @@ cd WordMesh-backend
 cargo run
 ```
 
-3. 访问服务：
+3. 运行前端服务：
+
+```bash
+cd wordmesh-frontend
+npm run dev
+```
+
+4. 访问服务：
+   - 前端应用: http://localhost:3000
    - 后端 API: http://localhost:8080
    - API 文档: 参考 [docs/api.md](docs/api.md)
    - Neo4j Browser: http://localhost:7474
@@ -99,4 +107,5 @@ curl -X GET http://localhost:8080/api/v1/auth/profile \
 
 ## 📖 文档
 
-详细文档请查看：[文档索引](docs/README.md)
+- [CLAUDE.md](./CLAUDE.md) - 开发指南（架构说明、开发命令、代码规范）
+- 详细文档请查看：[文档索引](docs/README.md)
