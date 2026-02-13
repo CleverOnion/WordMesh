@@ -4,7 +4,7 @@
 
 'use client';
 
-import { Edit2, Trash2, Star, StarOff } from 'lucide-react';
+import { Edit2, Trash2, Star, StarOff, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,7 @@ interface SenseCardProps {
   onEdit?: (sense: UserSense) => void;
   onDelete?: (senseId: number) => void;
   onTogglePrimary?: (senseId: number, isPrimary: boolean) => void;
+  onAddAssociation?: () => void;
   className?: string;
 }
 
@@ -24,6 +25,7 @@ export function SenseCard({
   onEdit,
   onDelete,
   onTogglePrimary,
+  onAddAssociation,
   className,
 }: SenseCardProps) {
   return (
@@ -32,8 +34,8 @@ export function SenseCard({
         sense.is_primary ? 'border-primary/50 bg-primary/5' : ''
       } ${className}`}
     >
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-3">
+      <CardContent className="p-4 relative">
+        <div className="flex items-start justify-between gap-3 relative">
           <div className="flex-1 space-y-2">
             <div className="flex items-center gap-2">
               {sense.is_primary && (
@@ -56,12 +58,21 @@ export function SenseCard({
               {formatDateTime(sense.created_at)}
             </p>
           </div>
-          <div className="flex flex-col gap-2">
-            {onTogglePrimary && (
+          <div className="flex flex-col gap-2 shrink-0" style={{ position: 'relative', zIndex: 100 }}>
+            {onTogglePrimary && sense.id && (
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => onTogglePrimary(sense.id!, !sense.is_primary)}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Toggle primary clicked for sense:', sense.id, 'current is_primary:', sense.is_primary);
+                  if (sense.id) {
+                    onTogglePrimary(sense.id, !sense.is_primary);
+                  }
+                }}
+                style={{ position: 'relative', zIndex: 1000, pointerEvents: 'auto' }}
                 className="h-8 w-8"
                 title={sense.is_primary ? '取消主义项' : '设为主义项'}
               >
@@ -72,22 +83,56 @@ export function SenseCard({
                 )}
               </Button>
             )}
+            {onAddAssociation && sense.id && (
+              <Button
+                variant="ghost"
+                size="icon"
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Add association clicked for sense:', sense.id);
+                  onAddAssociation();
+                }}
+                style={{ position: 'relative', zIndex: 1000, pointerEvents: 'auto' }}
+                className="h-8 w-8"
+                title="添加义-词关联"
+              >
+                <Link2 className="size-4" />
+              </Button>
+            )}
             {onEdit && (
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => onEdit(sense)}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Edit clicked for sense:', sense);
+                  onEdit(sense);
+                }}
+                style={{ position: 'relative', zIndex: 1000, pointerEvents: 'auto' }}
                 className="h-8 w-8"
                 title="编辑义项"
               >
                 <Edit2 className="size-4" />
               </Button>
             )}
-            {onDelete && (
+            {onDelete && sense.id && (
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => onDelete(sense.id!)}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Delete clicked for sense:', sense.id);
+                  if (sense.id) {
+                    onDelete(sense.id);
+                  }
+                }}
+                style={{ position: 'relative', zIndex: 1000, pointerEvents: 'auto' }}
                 className="h-8 w-8 text-destructive hover:text-destructive"
                 title="删除义项"
               >

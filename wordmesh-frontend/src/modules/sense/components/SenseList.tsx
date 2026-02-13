@@ -12,6 +12,7 @@ interface SenseListProps {
   onEdit?: (sense: UserSense) => void;
   onDelete?: (senseId: number) => void;
   onTogglePrimary?: (senseId: number, isPrimary: boolean) => void;
+  onAddAssociation?: (senseId: number) => void;
   emptyMessage?: string;
   className?: string;
 }
@@ -21,6 +22,7 @@ export function SenseList({
   onEdit,
   onDelete,
   onTogglePrimary,
+  onAddAssociation,
   emptyMessage = '暂无义项',
   className,
 }: SenseListProps) {
@@ -48,6 +50,7 @@ export function SenseList({
           onEdit={onEdit}
           onDelete={onDelete}
           onTogglePrimary={onTogglePrimary}
+          onAddAssociation={sense.id ? () => onAddAssociation?.(sense.id!) : undefined}
         />
       ))}
     </div>

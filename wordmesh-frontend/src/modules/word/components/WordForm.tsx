@@ -70,10 +70,11 @@ export function WordForm({ onSubmit, onCancel, isLoading = false }: WordFormProp
       text: values.text,
       tags: tags.length > 0 ? tags : undefined,
       note: values.note || undefined,
-      firstSense: values.firstSense
+      first_sense: values.firstSense
         ? {
             text: values.firstSense.text,
             is_primary: values.firstSense.is_primary || false,
+            sort_order: 0,
             note: values.firstSense.note || undefined,
           }
         : undefined,

@@ -7,6 +7,7 @@ export { WordCard } from './components/WordCard';
 export { WordList } from './components/WordList';
 export { WordForm } from './components/WordForm';
 export { WordSearch } from './components/WordSearch';
+export { WordSelector } from './components/WordSelector';
 
 // Hooks
 export { useWord } from './hooks/useWord';

@@ -9,7 +9,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Form,
@@ -20,14 +19,24 @@ import {
   FormMessage,
   FormDescription,
 } from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import { AssociationTypeSelector } from './AssociationTypeSelector';
+import { WordSelector } from '@/modules/word';
 import type {
   CreateWordLinkRequest,
   CreateSenseWordLinkRequest,
   WordLinkKind,
   SenseWordLinkKind,
 } from '../types/association.types';
+import type { UserWordAggregate } from '@/modules/word';
+import type { UserSense } from '@/modules/sense';
 
 // 词-词关联表单 schema
 const wordLinkFormSchema = z.object({
@@ -61,6 +70,10 @@ interface AssociationFormProps {
   // 义-词关联的预设值
   senseId?: number;
   targetWordId?: number;
+  // 单词列表（用于 WordSelector）
+  words?: UserWordAggregate[];
+  // 当前选中的单词（用于义项选择器）
+  selectedWord?: UserWordAggregate | null;
 }
 
 export function AssociationForm({
@@ -72,6 +85,8 @@ export function AssociationForm({
   wordBId,
   senseId,
   targetWordId,
+  words = [],
+  selectedWord,
 }: AssociationFormProps) {
   const wordForm = useForm<WordLinkFormValues>({
     resolver: zodResolver(wordLinkFormSchema),
@@ -128,15 +143,15 @@ export function AssociationForm({
             name="word_a_id"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>第一个单词 ID</FormLabel>
+                <FormLabel>第一个单词</FormLabel>
                 <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="输入单词 ID"
-                    className="transition-all duration-200 focus:scale-[1.02] focus:shadow-md"
-                    {...field}
-                    onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                    value={field.value || ''}
+                  <WordSelector
+                    words={words}
+                    value={field.value || undefined}
+                    onValueChange={field.onChange}
+                    placeholder="选择第一个单词"
+                    excludeWordIds={wordBId ? [wordBId] : []}
+                    disabled={isLoading}
                   />
                 </FormControl>
                 <FormMessage className="animate-in slide-in-from-top-1 duration-200" />
@@ -149,15 +164,15 @@ export function AssociationForm({
             name="word_b_id"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>第二个单词 ID</FormLabel>
+                <FormLabel>第二个单词</FormLabel>
                 <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="输入单词 ID"
-                    className="transition-all duration-200 focus:scale-[1.02] focus:shadow-md"
-                    {...field}
-                    onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                    value={field.value || ''}
+                  <WordSelector
+                    words={words}
+                    value={field.value || undefined}
+                    onValueChange={field.onChange}
+                    placeholder="选择第二个单词"
+                    excludeWordIds={wordAId ? [wordAId] : []}
+                    disabled={isLoading}
                   />
                 </FormControl>
                 <FormMessage className="animate-in slide-in-from-top-1 duration-200" />
@@ -242,17 +257,55 @@ export function AssociationForm({
           name="sense_id"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>义项 ID</FormLabel>
+              <FormLabel>义项</FormLabel>
               <FormControl>
-                <Input
-                  type="number"
-                  placeholder="输入义项 ID"
-                  className="transition-all duration-200 focus:scale-[1.02] focus:shadow-md"
-                  {...field}
-                  onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                  value={field.value || ''}
-                />
+                {selectedWord && selectedWord.user_word.senses.length > 0 ? (
+                  <Select
+                    value={field.value?.toString()}
+                    onValueChange={(value) => field.onChange(parseInt(value, 10))}
+                    disabled={isLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择义项" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {selectedWord.user_word.senses.map((sense) => (
+                        <SelectItem
+                          key={sense.id || `sense-${sense.text}`}
+                          value={sense.id?.toString() || ''}
+                        >
+                          <div className="flex flex-col">
+                            <span className="font-medium">{sense.text}</span>
+                            {sense.is_primary && (
+                              <span className="text-xs text-muted-foreground">主义项</span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Select
+                    value={field.value?.toString()}
+                    onValueChange={(value) => field.onChange(parseInt(value, 10))}
+                    disabled={isLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="请输入义项 ID" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                        请先选择单词以查看义项列表
+                      </div>
+                    </SelectContent>
+                  </Select>
+                )}
               </FormControl>
+              <FormDescription>
+                {selectedWord
+                  ? `从 "${selectedWord.word.text}" 的义项中选择`
+                  : '请先选择单词以查看义项列表'}
+              </FormDescription>
               <FormMessage className="animate-in slide-in-from-top-1 duration-200" />
             </FormItem>
           )}
@@ -263,15 +316,15 @@ export function AssociationForm({
           name="target_word_id"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>目标单词 ID</FormLabel>
+              <FormLabel>目标单词</FormLabel>
               <FormControl>
-                <Input
-                  type="number"
-                  placeholder="输入目标单词 ID"
-                  className="transition-all duration-200 focus:scale-[1.02] focus:shadow-md"
-                  {...field}
-                  onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                  value={field.value || ''}
+                <WordSelector
+                  words={words}
+                  value={field.value || undefined}
+                  onValueChange={field.onChange}
+                  placeholder="选择目标单词"
+                  excludeWordIds={selectedWord ? [selectedWord.word.id] : []}
+                  disabled={isLoading}
                 />
               </FormControl>
               <FormMessage className="animate-in slide-in-from-top-1 duration-200" />
