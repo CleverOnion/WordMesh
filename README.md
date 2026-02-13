@@ -149,7 +149,7 @@ All endpoints return a unified response format:
 | Authentication | ✅ Complete |
 | Word Management | ✅ Complete (API & UI) |
 | Associations | ✅ Complete (API & UI) |
-| Network Visualization | 🚧 Planned |
+| Network Visualization | ✅ Complete (Graph view with force layout) |
 
 ---
 
