@@ -147,8 +147,8 @@ All endpoints return a unified response format:
 | Module | Status |
 |--------|--------|
 | Authentication | ✅ Complete |
-| Word Management | 🔄 In Progress (~60%) |
-| Associations | 🔄 In Progress (~40%) |
+| Word Management | ✅ Complete (API & UI) |
+| Associations | ✅ Complete (API & UI) |
 | Network Visualization | 🚧 Planned |
 
 ---
